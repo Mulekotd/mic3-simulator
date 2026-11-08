@@ -1,11 +1,25 @@
 services:
+  assembler:
+    image: mic3-assembler
+    build:
+      context: ./assembler
+      dockerfile: ../dockerfiles/Assembler
+    user: "${ASSEMBLER_UID:-1000}:${ASSEMBLER_GID:-1000}"
+    command: ["/data/${ASSEMBLER_PROGRAM:-programa.asm}", "-o", "/data/${ASSEMBLER_OUTPUT:-programa.bin}", "-l", "/data/${ASSEMBLER_LISTING:-programa.lst}"]
+    volumes:
+      - ${ASSEMBLER_DATA_DIR:-./shared}:/data
+    network_mode: none
+
   simulator:
     container_name: simulator
     image: mic3-sim
     build:
       context: ./simulator
       dockerfile: ../dockerfiles/Simulator
-    command: ["/data/${SIMULATOR_PROGRAM:-programa.bin}", "--cycles", "${SIMULATOR_CYCLES:-1}"]
+    command: ["/data/${SIMULATOR_PROGRAM:-programa.bin}", "--cycles", "${SIMULATOR_CYCLES:-1000000}"]
+    depends_on:
+      assembler:
+        condition: service_completed_successfully
     volumes:
       - ./shared:/data:ro
     network_mode: none

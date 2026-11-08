@@ -14,9 +14,17 @@ if(BUILD_TESTING)
     target_link_libraries(mic3_tests PRIVATE mic3_components)
     add_test(NAME components COMMAND mic3_tests ${CMAKE_CURRENT_BINARY_DIR})
 
-    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/test_program.bin "ABCD")
-    add_test(NAME simulator_cli
-             COMMAND mic3_simulator ${CMAKE_CURRENT_BINARY_DIR}/test_program.bin --cycles 3)
-    set_tests_properties(simulator_cli PROPERTIES
-        PASS_REGULAR_EXPRESSION "loaded_words=1 cycles=3 PC=3 MPC=3 RAM_words=4096")
+    find_package(Python3 COMPONENTS Interpreter QUIET)
+    if(Python3_Interpreter_FOUND)
+        if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli.py)
+            add_test(NAME simulator_cli
+                     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli.py
+                             $<TARGET_FILE:mic3_simulator>)
+        endif()
+        if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/../tools/microcode/build_rom.py)
+            add_test(NAME microcode_rom
+                     COMMAND ${Python3_EXECUTABLE}
+                             ${CMAKE_CURRENT_SOURCE_DIR}/../tools/microcode/build_rom.py --check)
+        endif()
+    endif()
 endif()

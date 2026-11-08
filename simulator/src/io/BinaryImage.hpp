@@ -1,15 +1,16 @@
 #pragma once
 
-#include "Memory.hpp"
+#include "../Memory.hpp"
 
 #include <cstddef>
-#include <string>
 #include <fstream>
 #include <iterator>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
-std::size_t loadProgram(const std::string& path, Memory& memory) {
+// Carrega uma imagem plana: uma palavra de 32 bits a cada quatro bytes.
+inline std::size_t loadBinaryImage(const std::string& path, Memory& memory) {
     std::ifstream file(path, std::ios::binary);
 
     if (!file)
@@ -22,6 +23,7 @@ std::size_t loadProgram(const std::string& path, Memory& memory) {
     if (file.bad())
         throw std::runtime_error("erro ao ler o programa: " + path);
 
+    // Verifica a imagem inteira antes de alterar o conteúdo da memória.
     if (bytes.size() % Memory::wordBytes != 0)
         throw std::runtime_error("o tamanho do programa deve ser multiplo de 4 bytes");
 
@@ -32,6 +34,7 @@ std::size_t loadProgram(const std::string& path, Memory& memory) {
 
     memory.reset();
 
+    // O montador grava o byte menos significativo primeiro (little endian).
     for (std::size_t i = 0; i < words; ++i) {
         const std::size_t offset = i * Memory::wordBytes;
         const Word value = Word(bytes[offset]) |

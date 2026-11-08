@@ -44,3 +44,18 @@ Formato B (opcode 1111):          [31:28] = 1111 | [27:24] sub-opcode | [23:8] =
 | `0xFFD`  | **para a simulação** (`HALTED`)                        |
 
 O montador oferece pseudo-instruções: `OUTI` = `STOD 0xFFF`, `OUTC` = `STOD 0xFFE`, `HALT` = `STOD 0xFFD`.
+
+## Endereçamento e representação
+
+- `pc`, `sp` e `x` contêm **endereços de palavras**, não de bytes. Uma palavra tem 32 bits; a RAM tem endereços `0x000` a `0xFFF`.
+- As operações aritméticas usam complemento de dois de 32 bits, com descarte do carry além do bit 31. `JPOS` e `JNEG` interpretam o sinal do valor de `ac`; `JZER` e `JNZE` testam zero.
+- `x` e `y` são inteiros **sem sinal**. `LOCO x` não codifica constante negativa. Um acesso `sp + x` fora de `0x000` a `0xFFF` é inválido; não há retorno circular do endereço.
+- O `pc` aponta para a próxima instrução após a busca. Por isso `CALL` empilha o endereço de retorno já incrementado.
+- A pilha começa em `sp = 0xFFC` e cresce para endereços menores. O primeiro `PUSH` ou `CALL` escreve em `0xFFB`. Os endereços `0xFFD` a `0xFFF` ficam reservados para E/S.
+- O arquivo `.bin` contém as palavras consecutivas em **little-endian**, sem cabeçalho, a partir do endereço 0. Instruções e dados compartilham a mesma RAM.
+
+## Dialeto assembly previsto
+
+O montador aceita um rótulo opcional (`nome:`), seguido de uma instrução ou diretiva. Um comentário começa em `;` e termina no fim da linha. Nomes de rótulos usam letras, dígitos e `_`, começando por letra ou `_`; mnemônicos não diferenciam maiúsculas de minúsculas. O operando pode ser um número decimal, `0x` hexadecimal ou um rótulo. Referências a rótulos adiante são permitidas; rótulos diferenciam maiúsculas de minúsculas.
+
+Cada instrução e cada `.word` ocupam uma palavra. `.word valor` grava o padrão de 32 bits de um inteiro entre −2³¹ e 2³²−1. `.org endereço` usa um número literal, avança o endereço de montagem e preenche posições puladas com zero; não pode retroceder nem ultrapassar `0xFFF`. `OUTI`, `OUTC` e `HALT` ocupam **uma palavra cada**, pela expansão indicada acima. O montador rejeita operandos fora da faixa (`x`: 0–4095; `y`: 0–255), rótulos duplicados e instruções sem operando obrigatório.

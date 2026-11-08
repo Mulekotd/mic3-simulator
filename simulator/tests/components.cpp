@@ -3,7 +3,7 @@
 #include "Clock.hpp"
 #include "ControlStore.hpp"
 #include "MMUX.hpp"
-#include "ProgramLoader.hpp"
+#include "io/BinaryImage.hpp"
 #include "RAM.hpp"
 #include "Shifter.hpp"
 #include "registers/CPURegisters.hpp"
@@ -130,16 +130,16 @@ void testLoader(const std::filesystem::path& directory) {
     ram.write(10, 99);
     writeBytes(path, {0x78, 0x56, 0x34, 0x12, 0xFF, 0x00, 0x00, 0x80});
 
-    check(loadProgram(path.string(), ram) == 2, "loader: contagem de palavras");
+    check(loadBinaryImage(path.string(), ram) == 2, "loader: contagem de palavras");
     check(ram.read(0) == 0x12345678u && ram.read(1) == 0x800000FFu, "loader: palavras little-endian");
     check(ram.read(10) == 0, "loader: limpa RAM antes de carregar");
 
     writeBytes(path, {0x12, 0x34, 0x56});
-    checkThrows<std::runtime_error>([&] { loadProgram(path.string(), ram); }, "loader: rejeita palavra incompleta");
+    checkThrows<std::runtime_error>([&] { loadBinaryImage(path.string(), ram); }, "loader: rejeita palavra incompleta");
 
     writeBytes(path, std::vector<unsigned char>(RAM::sizeBytes + 4, 0));
-    checkThrows<std::runtime_error>([&] { loadProgram(path.string(), ram); }, "loader: rejeita programa maior que a RAM");
-    checkThrows<std::runtime_error>([&] { loadProgram((path.string() + ".missing"), ram); }, "loader: rejeita arquivo inexistente");
+    checkThrows<std::runtime_error>([&] { loadBinaryImage(path.string(), ram); }, "loader: rejeita programa maior que a RAM");
+    checkThrows<std::runtime_error>([&] { loadBinaryImage((path.string() + ".missing"), ram); }, "loader: rejeita arquivo inexistente");
 }
 
 int main(int argc, char* argv[]) {

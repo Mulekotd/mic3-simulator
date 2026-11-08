@@ -1,76 +1,50 @@
 # Simulador MIC-3
 
-Projeto de um simulador de microarquitetura MIC-3 em C++17, com montador e interface gráfica planejados. As decisões de arquitetura e o roteiro de desenvolvimento estão em [docs/plano-desenvolvimento.md](docs/plano-desenvolvimento.md).
+Simulador de microarquitetura em C++17 com montador de assembly e microasm em Python. Executa as 23 instruções da [ISA](docs/isa.md) em uma MIC-1 de 32 bits, sem pipeline ou cache nesta etapa.
 
-## Estado atual
+## Uso local
 
-O simulador contém ULA, multiplexadores, shifter, registradores, RAM de 4096 palavras de 32 bits, memória de controle e clock simulado. Ele aceita um arquivo binário e o carrega na RAM a partir do endereço de palavra 0.
+Requisitos: CMake 3.12+, compilador C++17 e Python 3.
 
-**A execução da ISA ainda não está implementada.** Por enquanto, cada ciclo demonstra a borda de subida com a micro-operação fixa `PC ← PC + 1`; o conteúdo do arquivo carregado não determina essa operação. Pipeline, caches, microprograma, protocolo TX/RX, montador e GUI continuam no plano de desenvolvimento.
-
-## Formato do programa
-
-O argumento `programa.bin` deve conter palavras consecutivas de **32 bits little-endian**, sem cabeçalho. Seu tamanho deve ser múltiplo de 4 bytes e não pode exceder **4096 palavras (16 KiB)**. Os endereços são índices de palavras, não de bytes.
-
-Para criar um arquivo de exemplo com uma palavra zero:
-
-```bash
-mkdir -p shared
-printf '\x00\x00\x00\x00' > shared/programa.bin
-```
-
-## Compilar e executar localmente
-
-Requisitos: compilador C++17 e CMake 3.12 ou superior.
-
-```bash
-cmake -S simulator -B simulator/builds/local -DCMAKE_BUILD_TYPE=Release
+```sh
+cmake -S assembler -B assembler/builds/local
+cmake --build assembler/builds/local
+cmake -S simulator -B simulator/builds/local
 cmake --build simulator/builds/local
-./simulator/builds/local/mic3_simulator shared/programa.bin --cycles 3
+
+./assembler/builds/local/assembler examples/sum.asm -o /tmp/sum.bin -l /tmp/sum.lst
+./simulator/builds/local/mic3_simulator /tmp/sum.bin --cycles 100000
 ```
 
-Para validar o arquivo antes de executar, use o script em `tools/`:
+O resultado esperado é `PROGRAM_OUT=16` seguido de `HALTED`. Use `--trace` para ver os ciclos no `stderr`. O arquivo `.bin` contém palavras de 32 bits little endian, sem cabeçalho, até 4096 palavras.
 
-```bash
-python3 tools/program_loader.py shared/programa.bin --cycles 3
+## Microprograma
+
+O [microasm](tools/microcode/README.md) monta `tools/microcode/mic1.masm` em `ctrl.bin` e `.mlst`. O simulador atual usa a ROM C++ gerada do mesmo arquivo:
+
+```sh
+python3 tools/microcode/build_rom.py --check
+python3 tools/microcode/microasm.py tools/microcode/mic1.masm -o /tmp/ctrl.bin -l /tmp/ctrl.mlst
 ```
 
-O script aceita `--simulator CAMINHO` para usar um executável compilado em outro diretório. Ele recebe um arquivo `.bin`; os exemplos `.asm` dependem do montador ainda planejado.
+## Docker Compose
 
-`--cycles N` é opcional; o padrão é **1**. A saída informa quantas palavras foram carregadas, os ciclos simulados, PC, MPC e a capacidade da RAM. O comando acima deve informar `loaded_words=1 cycles=3 PC=3 MPC=3 RAM_words=4096`.
-
-## Executar com Docker
-
-```bash
-docker build -f dockerfiles/Simulator -t mic3-sim ./simulator
-docker run --rm -v "$PWD/shared:/data:ro" mic3-sim /data/programa.bin --cycles 3
+```sh
+mkdir -p shared
+cp examples/sum.asm shared/programa.asm
+ASSEMBLER_UID="$(id -u)" ASSEMBLER_GID="$(id -g)" docker compose up --build --abort-on-container-failure
 ```
 
-O volume torna `shared/programa.bin` acessível ao container em `/data/programa.bin`. Use um caminho absoluto dentro do container ao passar outro programa. A imagem executa o simulador como usuário sem privilégios.
+O serviço `assembler` gera `shared/programa.bin`; o `simulator` o executa.
 
-Com Docker Compose, o serviço `simulator` usa o mesmo arquivo em `shared/`:
+## Verificação e documentação
 
-```bash
-SIMULATOR_CYCLES=3 docker compose run --rm --build simulator
-```
-
-O padrão é `shared/programa.bin` e 1 ciclo. Para outro arquivo dentro de `shared/`, use `SIMULATOR_PROGRAM=outro.bin`. O serviço não expõe portas nem usa rede.
-
-## Testes
-
-Depois de configurar e compilar o simulador, execute:
-
-```bash
+```sh
 ctest --test-dir simulator/builds/local --output-on-failure
+python3 tools/validate_examples.py
 ```
 
-A suíte verifica componentes, carregamento de programas e a saída da linha de comando.
-
-## Documentação
-
-- [Visão geral](docs/visao-geral.md)
-- [Arquitetura e protocolo planejado](docs/arquitetura-sistema.md)
-- [ISA](docs/isa.md)
-- [Parâmetros e microarquitetura](docs/decisoes-projeto.md)
+- [Exemplos](examples/README.md)
+- [Microarquitetura](docs/microarch.md)
 - [Fases de desenvolvimento](docs/fases-desenvolvimento.md)
-- [Planejamento da entrega](docs/planejamento-entrega.md)
+- [Protocolo planejado](docs/protocol.md)

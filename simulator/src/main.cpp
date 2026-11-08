@@ -1,13 +1,6 @@
-#include "ALU.hpp"
-#include "AMUX.hpp"
-#include "Clock.hpp"
-#include "ControlStore.hpp"
-#include "MMUX.hpp"
-#include "Memory.hpp"
-#include "ProgramLoader.hpp"
+#include "MicroMachine.hpp"
+#include "io/BinaryImage.hpp"
 #include "RAM.hpp"
-#include "Shifter.hpp"
-#include "registers/CPURegisters.hpp"
 
 #include <charconv>
 #include <cstdint>
@@ -16,63 +9,98 @@
 #include <string_view>
 
 int main(int argc, char* argv[]) {
-    if (argc != 2 && argc != 4) {
-        std::cerr << "Uso: mic3_simulator programa.bin [--cycles N]\n";
+    if (argc < 2) {
+        std::cerr << "Uso: mic3_simulator programa.bin [--cycles N] [--trace]\n";
         return 1;
     }
 
+    const char* program = argv[1];
     std::uint64_t requestedCycles = 1;
+    bool trace = false;
+    bool cyclesSeen = false;
 
-    if (argc == 4) {
-        if (std::string_view(argv[2]) != "--cycles") {
-            std::cerr << "Uso: mic3_simulator programa.bin [--cycles N]\n";
-            return 1;
-        }
+    // Analisa o limite de ciclos e a opção de rastreamento antes de carregar a RAM.
+    for (int i = 2; i < argc; ++i) {
+        const std::string_view option(argv[i]);
 
-        const std::string_view number(argv[3]);
-        const auto parsed = std::from_chars(number.data(), number.data() + number.size(), requestedCycles);
+        if (option == "--trace" && !trace) {
+            trace = true;
+        } else if (option == "--cycles" && !cyclesSeen && i + 1 < argc) {
+            const std::string_view number(argv[++i]);
+            const auto parsed = std::from_chars(number.data(), number.data() + number.size(),
+                                                requestedCycles);
 
-        if (parsed.ec != std::errc{} || parsed.ptr != number.data() + number.size()) {
-            std::cerr << "N deve ser um inteiro nao negativo\n";
+            if (parsed.ec != std::errc{} || parsed.ptr != number.data() + number.size()) {
+                std::cerr << "N deve ser um inteiro nao negativo\n";
+                return 1;
+            }
+
+            cyclesSeen = true;
+        } else {
+            std::cerr << "Uso: mic3_simulator programa.bin [--cycles N] [--trace]\n";
             return 1;
         }
     }
 
     try {
-        CPURegisters cpu;
         RAM ram;
-        Memory& memory = ram;
-        ControlStore controlMemory;
-        Clock clock;
+        const auto loadedWords = loadBinaryImage(program, ram);
+        MicroMachine machine(ram);
+        bool characterLineOpen = false;
 
-        const auto loadedWords = loadProgram(argv[1], memory);
+        // Cada chamada executa uma microinstrução e conclui transações pendentes.
+        for (std::uint64_t i = 0; i < requestedCycles && !machine.halted(); ++i) {
+            const auto event = machine.step();
+            const auto& cpu = machine.cpu();
 
-        for (std::uint64_t i = 0; i < requestedCycles; ++i) {
-            // Circuitos combinacionais usam o estado antes da borda.
-            // Micro-operacao temporaria: PC <- PC + 1.
-            const auto a = cpu.bank.read(RegisterBank::PC);
-            const auto b = cpu.bank.read(RegisterBank::ONE);
-            const auto alu = ALU::execute(AMUX::select(a, cpu.mbr.read(), 0), b, 0b00);
-            const auto nextPC = Shifter::execute(alu.value, 0b00);
-            const auto nextMPC = MMUX::select(cpu.mpc, 0, 0b00, alu.n, alu.z);
-            const auto nextMIR = controlMemory.read(cpu.mpc);
+            if (event.integerOutput) {
+                if (characterLineOpen) {
+                    std::cout << '\n';
+                    characterLineOpen = false;
+                }
 
-            clock.tick([&] {
-                cpu.a.write(a);
-                cpu.b.write(b);
-                cpu.bank.write(RegisterBank::PC, nextPC);
-                cpu.mir.write(nextMIR);
-                cpu.mpc = nextMPC;
-                cpu.n = alu.n;
-                cpu.z = alu.z;
-            });
+                // A saída numérica interpreta os mesmos 32 bits como inteiro com sinal.
+                const std::int64_t signedValue = event.output <= 0x7FFFFFFFu ? event.output : std::int64_t{event.output} - 0x100000000LL;
+
+                std::cout << "PROGRAM_OUT=" << signedValue << '\n';
+            }
+
+            if (event.characterOutput) {
+                std::cout << static_cast<char>(event.output);
+                characterLineOpen = true;
+            }
+
+            if (trace) {
+                std::cerr << "cycle=" << machine.cycles()
+                          << " micro=" << static_cast<unsigned>(event.mpc)
+                          << " word=" << event.word
+                          << " PC=" << cpu.bank.read(RegisterBank::PC)
+                          << " AC=" << cpu.bank.read(RegisterBank::AC)
+                          << " SP=" << cpu.bank.read(RegisterBank::SP)
+                          << " IR=" << cpu.bank.read(RegisterBank::IR)
+                          << " MAR=" << cpu.mar.read() << " MBR=" << cpu.mbr.read()
+                          << " MPC=" << static_cast<unsigned>(cpu.mpc)
+                          << " N=" << cpu.n << " Z=" << cpu.z << '\n';
+            }
         }
 
+        if (characterLineOpen)
+            std::cout << '\n';
+
+        if (machine.halted())
+            std::cout << "HALTED cycles=" << machine.cycles()
+                      << " instructions=" << machine.instructions() << '\n';
+
+        // Mantém um resumo mesmo quando o limite de ciclos encerra a execução.
         std::cout << "loaded_words=" << loadedWords
-                  << " cycles=" << clock.cycles()
-                  << " PC=" << cpu.bank.read(RegisterBank::PC)
-                  << " MPC=" << static_cast<unsigned>(cpu.mpc)
-                  << " RAM_words=" << memory.sizeWords() << '\n';
+                  << " cycles=" << machine.cycles()
+                  << " instructions=" << machine.instructions()
+                  << " PC=" << machine.cpu().bank.read(RegisterBank::PC)
+                  << " MPC=" << static_cast<unsigned>(machine.cpu().mpc)
+                  << " RAM_words=" << ram.sizeWords()
+                  << " halted=" << machine.halted() << '\n';
+
+        return 0;
     } catch (const std::exception& error) {
         std::cerr << error.what() << '\n';
         return 1;

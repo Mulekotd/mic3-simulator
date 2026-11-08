@@ -6,46 +6,44 @@
 - [X] Decidir o empacotamento da GUI: opção A (host) ou B (imagem única) ([comunicação simulador ↔ GUI](arquitetura-sistema.md)).
 - [X] Escolher a biblioteca de GUI (PyQt/PySide ou Tkinter).
 - [ ] "Hello world" da comunicação: simulador ecoando bytes pelo `stdin`/`stdout` e a GUI Python recebendo, dentro de `docker run -i`.
-- [X] Registrar as [decisões de ISA e microarquitetura](decisoes-projeto.md).
 
 **Entrega:** repositório estruturado e eco de bytes simulador ↔ Python funcionando.
 
 ## Fase 1: Especificação (≈ 1 semana)
-- [ ] `docs/isa.md`: tabela de instruções, formatos de bits, E/S mapeada em memória, exemplos.
-- [ ] `docs/microarch.md`: diagrama do caminho de dados, mapa de registradores, formato da microinstrução.
-- [ ] `docs/memory.md`: caches, memória, árbitro, parâmetros.
-- [ ] `docs/protocol.md` + `protocol/protocol.yaml`: quadros, comandos, mensagens e layouts ([protocolo TX/RX](arquitetura-sistema.md)).
+- [X] `docs/isa.md`: tabela de instruções, formatos de bits, E/S mapeada em memória, exemplos.
+- [X] `docs/microarch.md`: diagrama do caminho de dados, mapa de registradores, formato da microinstrução.
+- [X] `docs/memory.md`: caches, memória, árbitro, parâmetros.
+- [X] `docs/protocol.md` + `protocol/protocol.yaml`: quadros, comandos, mensagens e layouts ([protocolo TX/RX](protocol.md)).
 
-**Entrega:** documentos aprovados. **Critério:** é possível escrever "à mão" um programa pequeno e prever o resultado.
+**Entrega:** documentos escritos e consistentes; aprovação do grupo ainda pendente. **Critério técnico:** o exemplo em [isa.md](isa.md) pode ser codificado à mão e tem resultado previsível.
 
 ## Fase 2: Simulador base: MIC-1 de 32 bits, sem pipeline nem cache (≈ 2 semanas)
 Reproduzir o MIC-1 do PDF com palavra de 32 bits e 32 registradores, executando o **microprograma fornecido**.
-- [ ] Estruturas: banco de registradores (R0 = 0), A/B latches, AMUX, ALU (N/Z), shifter, MAR/MBR, memória principal, Memória de Controle, MPC.
-- [ ] Ciclo de relógio: leitura de A/B, ALU/shifter, escrita em C, acesso à memória, próximo MPC.
-- [ ] Transcrever o microprograma do PDF para um arquivo na notação do microasm (`microcode/mic1.masm`).
-- [ ] Carregador de binário na memória principal; E/S mapeada em memória (`PROGRAM_OUT`, `HALTED`).
-- [ ] Modo texto de depuração: traço por ciclo no `stderr`.
-- [ ] Validar com programas de exemplo que usem as 23 instruções.
+- [X] Estruturas: banco de registradores (R0 = 0), A/B latches, AMUX, ALU (N/Z), shifter, MAR/MBR, memória principal, Memória de Controle, MPC.
+- [X] Ciclo de relógio: leitura de A/B, ALU/shifter, escrita em C, acesso à memória, próximo MPC.
+- [X] Transcrever o microprograma do PDF para um arquivo na notação do microasm (`tools/microcode/mic1.masm`).
+- [X] Carregador de binário na memória principal (palavras little-endian, limite de 4096 palavras).
+- [X] E/S mapeada em memória (`PROGRAM_OUT`, `HALTED`).
+- [X] Modo texto de depuração: traço por ciclo no `stderr` (`--trace`).
+- [X] Validar com programas de exemplo que usem as 23 instruções.
 
-**Entrega:** programas pequenos executam corretamente. **Critério:** um programa que usa todas as instruções produz o resultado esperado.
+**Entrega:** os sete exemplos montam e executam corretamente. **Critério atendido:** `all_instructions.asm` percorre as 23 instruções e produz `PROGRAM_OUT=3`; `docker compose up` montou e executou esse exemplo nos dois containers.
 
 ## Fase 3: Montador e microasm (≈ 2 semanas, paralelo à Fase 2)
 **Montador:**
-- [ ] Analisador léxico e sintático (instruções, rótulos, comentários, diretivas `.word`, `.org`).
-- [ ] Tabela de símbolos e **montagem em dois passes** (rótulos de desvio e de dados).
-- [ ] Pseudo-instruções `HALT`, `OUTI`, `OUTC` ([ISA](isa.md)).
-- [ ] Verificação de faixa (`x` até 4095, `y` até 255) e mensagens de erro com linha/coluna.
-- [ ] Geração de binário (`.bin`) e **listagem** (`.lst`: endereço ↔ código ↔ fonte).
-- [ ] Programas de exemplo: soma, fatorial, Fibonacci, laço com vetor, chamada de procedimento (`CALL`/`RETN`).
+- [X] Analisador léxico e sintático (instruções, rótulos, comentários, diretivas `.word`, `.org`).
+- [X] Tabela de símbolos e **montagem em dois passes** (rótulos de desvio e de dados).
+- [X] Pseudo-instruções `HALT`, `OUTI`, `OUTC` ([ISA](isa.md)).
+- [X] Verificação de faixa (`x` até 4095, `y` até 255) e mensagens de erro com linha/coluna.
+- [X] Geração de binário (`.bin`) e **listagem** (`.lst`: endereço ↔ código ↔ fonte).
+- [X] Programas de exemplo: soma, fatorial, Fibonacci, laço com vetor, chamada de procedimento (`CALL`/`RETN`).
 
 **Microasm:**
-- [ ] *Parser* da notação do PDF (ver [microasm](arquitetura-sistema.md)), mais a palavra-chave `ifetch`.
-- [ ] Empacotamento dos campos conforme o formato de 36 bits.
-- [ ] Geração da Memória de Controle (`ctrl.bin`) e da listagem `.mlst` (com a fase Busca/Identifica/Executa de cada linha).
+- [X] *Parser* da notação do PDF (ver [microasm](../tools/microcode/README.md)), mais a palavra-chave `ifetch`.
+- [X] Empacotamento dos campos conforme o formato de 36 bits.
+- [X] Geração da Memória de Controle (`ctrl.bin`) e da listagem `.mlst` (com a fase Busca/Identifica/Executa de cada linha).
 
-**Entrega:** `assembler prog.asm -o prog.bin -l prog.lst` e `microasm mic1.masm -o ctrl.bin -l ctrl.mlst`. **Critério:** os programas de exemplo montam e rodam no simulador da Fase 2.
-
-> Sobre "interpretar **qualquer** programa em assembly": definir formalmente o *dialeto aceito* (gramática) na Fase 1, senão o requisito não é verificável.
+**Entrega:** `assembler prog.asm -o prog.bin -l prog.lst` monta os exemplos; `python3 tools/microcode/microasm.py tools/microcode/mic1.masm -o ctrl.bin -l ctrl.mlst` gera a Memória de Controle e sua listagem. O simulador atual incorpora a mesma ROM por meio de `tools/microcode/build_rom.py`.
 
 ## Fase 4: Pipeline (≈ 2 semanas)
 - [ ] Latches entre estágios com sinal de congelamento (`enable`).

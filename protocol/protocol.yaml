@@ -1,0 +1,190 @@
+version: 1
+transport: stdin_stdout_binary
+byte_order: little
+max_payload_bytes: 512
+frame:
+  fields:
+    - {name: type, type: u8}
+    - {name: length, type: u16, meaning: payload_bytes}
+    - {name: payload, type: bytes, count_field: length}
+
+enums:
+  status:
+    ok: 0
+    bad_length: 1
+    bad_state: 2
+    address_range: 3
+    bad_value: 4
+    unsupported: 5
+    load_incomplete: 6
+    io_failure: 7
+    malformed_frame: 8
+  report_mode:
+    complete: 0
+    compact: 1
+    final_only: 2
+  output_kind:
+    signed_integer: 0
+    character: 1
+  stop_reason:
+    cycle_limit: 0
+    pause: 1
+    breakpoint: 2
+    halt: 3
+    instruction_complete: 4
+  cache_result:
+    none: 0
+    hit: 1
+    miss: 2
+    bypass: 3
+  stall_reason:
+    none: 0
+    raw: 1
+    branch: 2
+    icache_miss: 3
+    dcache_miss: 4
+    memory_pending: 5
+
+commands:
+  LOAD_BEGIN:
+    id: 0x01
+    length: 8
+    fields:
+      - {name: start_word, type: u32, required_value: 0}
+      - {name: word_count, type: u32, min: 0, max: 4096}
+  LOAD_DATA:
+    id: 0x02
+    length: {base: 4, per_word: 4, min_words: 1, max_words: 64}
+    fields:
+      - {name: offset_words, type: u32}
+      - {name: words, type: u32, count: remaining_payload_words, max_count: 64}
+  LOAD_END:
+    id: 0x03
+    length: 0
+    fields: []
+  STEP_CYCLE:
+    id: 0x10
+    length: 0
+    fields: []
+  STEP_INSTR:
+    id: 0x11
+    length: 0
+    fields: []
+  RUN:
+    id: 0x12
+    length: 7
+    fields:
+      - {name: max_cycles, type: u32, min: 1}
+      - {name: report_mode, type: u8, enum: report_mode}
+      - {name: report_every, type: u16, min: 1}
+  PAUSE:
+    id: 0x13
+    length: 0
+    fields: []
+  RESET:
+    id: 0x14
+    length: 0
+    fields: []
+  SET_BP:
+    id: 0x15
+    length: 4
+    fields:
+      - {name: pc_word, type: u32, min: 0, max: 4095}
+  CLR_BP:
+    id: 0x16
+    length: 4
+    fields:
+      - {name: pc_word, type: u32, min: 0, max: 4095}
+  READ_MEM:
+    id: 0x20
+    length: 6
+    fields:
+      - {name: start_word, type: u32, min: 0, max: 4092}
+      - {name: word_count, type: u16, min: 1, max: 64}
+  CONFIG:
+    id: 0x21
+    length: 7
+    fields:
+      - {name: i_lines, type: u16, power_of_two: true, min: 1, max: 256}
+      - {name: d_lines, type: u16, power_of_two: true, min: 1, max: 256}
+      - {name: line_words, type: u8, allowed: [1, 2, 4, 8]}
+      - {name: memory_latency, type: u16, min: 1}
+
+messages:
+  ACK:
+    id: 0x81
+    length: 2
+    fields:
+      - {name: command_type, type: u8}
+      - {name: status, type: u8, enum: status}
+  CYCLE_STATE:
+    id: 0x90
+    length: 174
+    fields:
+      - {name: cycle, type: u32}
+      - {name: mpc, type: u16}
+      - {name: microword, type: u64, used_bits: 36}
+      - {name: flags, type: u8, bits: {0: n, 1: z}}
+      - {name: mar, type: u32}
+      - {name: mbr, type: u32}
+      - {name: pipe_valid, type: u8, bits: {0: read, 1: execute, 2: writeback}}
+      - {name: pipe_uop, type: u16, count: 3, invalid_value: 65535}
+      - {name: stall, type: u8, enum: stall_reason}
+      - {name: regs, type: u32, count: 32}
+      - {name: icache_result, type: u8, enum: cache_result}
+      - {name: icache_index, type: u16}
+      - {name: icache_tag, type: u32}
+      - {name: dcache_result, type: u8, enum: cache_result}
+      - {name: dcache_index, type: u16}
+      - {name: dcache_tag, type: u32}
+      - {name: dcache_flags, type: u8, bits: {0: write}}
+  PROGRAM_OUT:
+    id: 0x91
+    length: 5
+    fields:
+      - {name: kind, type: u8, enum: output_kind}
+      - {name: value, type: u32}
+  MEM_DATA:
+    id: 0x92
+    length: {base: 6, per_word: 4, min_words: 1, max_words: 64}
+    fields:
+      - {name: start_word, type: u32}
+      - {name: word_count, type: u16}
+      - {name: words, type: u32, count_field: word_count}
+  HALTED:
+    id: 0x93
+    length: 8
+    fields:
+      - {name: cycles, type: u32}
+      - {name: instructions, type: u32}
+  STATS:
+    id: 0x94
+    length: 52
+    fields:
+      - {name: cycles, type: u32}
+      - {name: instructions, type: u32}
+      - {name: icache_accesses, type: u32}
+      - {name: icache_hits, type: u32}
+      - {name: icache_misses, type: u32}
+      - {name: dcache_accesses, type: u32}
+      - {name: dcache_hits, type: u32}
+      - {name: dcache_misses, type: u32}
+      - {name: stall_raw, type: u32}
+      - {name: stall_branch, type: u32}
+      - {name: stall_icache, type: u32}
+      - {name: stall_dcache, type: u32}
+      - {name: stall_memory, type: u32}
+  RUN_STOPPED:
+    id: 0x95
+    length: 13
+    fields:
+      - {name: reason, type: u8, enum: stop_reason}
+      - {name: pc_word, type: u32}
+      - {name: cycles, type: u32}
+      - {name: instructions, type: u32}
+  ERROR:
+    id: 0x9f
+    length: 2
+    fields:
+      - {name: status, type: u8, enum: status}
+      - {name: offending_type, type: u8}

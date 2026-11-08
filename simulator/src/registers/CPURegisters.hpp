@@ -15,8 +15,8 @@ struct CPURegisters {
     MIR mir;
     std::uint8_t mpc = 0; // endereço da memória de controle
 
-    bool n = false; // sinal de negativo
-    bool z = false; // sinal de zero
+    bool n = false; // flag negativo
+    bool z = false; // flag zero
 
     void reset() {
         bank.reset();
