@@ -40,6 +40,7 @@ sim = subprocess.Popen(
 **Empacotamento:** por padrão, simulador e montador ficam em Docker e a GUI roda no host, iniciando o simulador com `docker run -i`. Se a GUI também precisar de container, usar imagem única e os mesmos pipes.
 
 No modo de linha de comando atual, o simulador recebe `programa.bin` como argumento. O binário contém palavras de 32 bits little-endian, carregadas a partir do endereço 0; a carga por `LOAD_*` será usada na futura interface TX/RX.
+O script `tools/program_loader.py` valida o arquivo binário e inicia esse executável. A transferência via `LOAD_*` substituirá essa forma de inicialização quando o protocolo RX estiver implementado.
 
 ## 1.3 Protocolo binário TX/RX (rascunho)
 
@@ -69,15 +70,15 @@ No modo de linha de comando atual, o simulador recebe `programa.bin` como argume
 
 **Mensagens (simulador → GUI, canal TX do simulador):**
 
-| TYPE   | Nome          | Conteúdo                                                                               |
-| ------ | ------------- | -------------------------------------------------------------------------------------- |
-| `0x81` | `ACK`/`NACK`  | código do comando (1B), status (1B)                                                    |
-| `0x90` | `CYCLE_STATE` | estado do ciclo (layout abaixo)                                                        |
-| `0x91` | `PROGRAM_OUT` | saída produzida pelo programa (ver [ISA](isa.md), E/S mapeada em memória) |
-| `0x92` | `MEM_DATA`    | endereço (4B), palavras lidas                                                          |
-| `0x93` | `HALTED`      | ciclos (4B), instruções (4B)                                                           |
-| `0x94` | `STATS`       | acessos/hits/misses das caches, ciclos parados (inteiros; o CPI é calculado pela GUI)  |
-| `0x9F` | `ERROR`       | código de erro (1B)                                                                    |
+| TYPE   | Nome          | Conteúdo                                                                              |
+| ------ | ------------- | ------------------------------------------------------------------------------------- |
+| `0x81` | `ACK`/`NACK`  | código do comando (1B), status (1B)                                                   |
+| `0x90` | `CYCLE_STATE` | estado do ciclo (layout abaixo)                                                       |
+| `0x91` | `PROGRAM_OUT` | saída produzida pelo programa (ver [ISA](isa.md), E/S mapeada em memória)             |
+| `0x92` | `MEM_DATA`    | endereço (4B), palavras lidas                                                         |
+| `0x93` | `HALTED`      | ciclos (4B), instruções (4B)                                                          |
+| `0x94` | `STATS`       | acessos/hits/misses das caches, ciclos parados (inteiros; o CPI é calculado pela GUI) |
+| `0x9F` | `ERROR`       | código de erro (1B)                                                                   |
 
 **Layout de `CYCLE_STATE` (rascunho; fixar em `docs/protocol.md`):**
 

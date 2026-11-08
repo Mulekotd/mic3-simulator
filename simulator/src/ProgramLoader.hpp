@@ -22,6 +22,9 @@ std::size_t loadProgram(const std::string& path, Memory& memory) {
     if (file.bad())
         throw std::runtime_error("erro ao ler o programa: " + path);
 
+    if (bytes.size() % Memory::wordBytes != 0)
+        throw std::runtime_error("o tamanho do programa deve ser multiplo de 4 bytes");
+
     const auto words = bytes.size() / Memory::wordBytes;
 
     if (words > memory.sizeWords())

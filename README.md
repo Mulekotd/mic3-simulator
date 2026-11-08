@@ -29,6 +29,14 @@ cmake --build simulator/builds/local
 ./simulator/builds/local/mic3_simulator shared/programa.bin --cycles 3
 ```
 
+Para validar o arquivo antes de executar, use o script em `tools/`:
+
+```bash
+python3 tools/program_loader.py shared/programa.bin --cycles 3
+```
+
+O script aceita `--simulator CAMINHO` para usar um executável compilado em outro diretório. Ele recebe um arquivo `.bin`; os exemplos `.asm` dependem do montador ainda planejado.
+
 `--cycles N` é opcional; o padrão é **1**. A saída informa quantas palavras foram carregadas, os ciclos simulados, PC, MPC e a capacidade da RAM. O comando acima deve informar `loaded_words=1 cycles=3 PC=3 MPC=3 RAM_words=4096`.
 
 ## Executar com Docker
@@ -47,6 +55,16 @@ SIMULATOR_CYCLES=3 docker compose run --rm --build simulator
 ```
 
 O padrão é `shared/programa.bin` e 1 ciclo. Para outro arquivo dentro de `shared/`, use `SIMULATOR_PROGRAM=outro.bin`. O serviço não expõe portas nem usa rede.
+
+## Testes
+
+Depois de configurar e compilar o simulador, execute:
+
+```bash
+ctest --test-dir simulator/builds/local --output-on-failure
+```
+
+A suíte verifica componentes, carregamento de programas e a saída da linha de comando.
 
 ## Documentação
 

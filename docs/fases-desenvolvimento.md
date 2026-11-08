@@ -6,7 +6,7 @@
 - [X] Decidir o empacotamento da GUI: opção A (host) ou B (imagem única) ([comunicação simulador ↔ GUI](arquitetura-sistema.md)).
 - [X] Escolher a biblioteca de GUI (PyQt/PySide ou Tkinter).
 - [ ] "Hello world" da comunicação: simulador ecoando bytes pelo `stdin`/`stdout` e a GUI Python recebendo, dentro de `docker run -i`.
-- [ ] Resolver os pontos em aberto da [pontos a confirmar](decisoes-projeto.md).
+- [X] Registrar as [decisões de ISA e microarquitetura](decisoes-projeto.md).
 
 **Entrega:** repositório estruturado e eco de bytes simulador ↔ Python funcionando.
 

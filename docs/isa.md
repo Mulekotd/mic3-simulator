@@ -2,7 +2,7 @@
 
 Sobre a ISA: **máquina de acumulador com pilha** (registradores visíveis: `ac`, `pc`, `sp`), **23 instruções**.
 
-**Codificação em 32 bits.** Para o microprograma fornecido continuar valendo sem mudanças, o opcode fica nos **4 bits mais altos** da palavra (o microprograma identifica a instrução deslocando `ir` e testando o sinal `N`):
+**Codificação em 32 bits.** Para o microprograma fornecido continuar valendo sem mudanças, o opcode fica nos **4 bits mais altos** da palavra (o microprograma identifica a instrução deslocando `ir` e testando o sinal `N`). O campo `x` tem 12 bits e representa endereço, constante ou deslocamento relativo a `sp`, conforme a instrução; `y` é um campo separado de 8 bits para `INSP`/`DESP`:
 
 ```
 Formato A (opcodes 0000 a 1110):  [31:28] opcode | [27:12] = 0 | [11:0] x   (endereço ou constante, 12 bits)
@@ -35,7 +35,7 @@ Formato B (opcode 1111):          [31:28] = 1111 | [27:24] sub-opcode | [23:8] =
 | `1111`, sub `1100` | INSP      | `sp := sp + y` (0 a 255)             |
 | `1111`, sub `1110` | DESP      | `sp := sp - y` (0 a 255)             |
 
-**Sem HALT e sem E/S na ISA.** A ISA do PDF não tem instrução de parada nem de entrada/saída. Para "retornar a saída final do programa", proposta: **E/S mapeada em memória**, usando os últimos endereços do espaço de 4096 palavras. Escritas nesses endereços **não passam pela D-cache** e são tratadas pelo simulador:
+**Sem HALT e sem E/S na ISA.** A ISA do PDF não tem instrução de parada nem de entrada/saída. Para "retornar a saída final do programa", o projeto usa **E/S mapeada em memória**, nos últimos endereços do espaço de 4096 palavras. Escritas nesses endereços **não passam pela D-cache** e são tratadas pelo simulador:
 
 | Endereço | Efeito de `STOD` nele                                  |
 | -------- | ------------------------------------------------------ |

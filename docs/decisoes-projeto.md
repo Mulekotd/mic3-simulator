@@ -17,7 +17,7 @@ A especificação da ISA está em [isa.md](isa.md).
 
 ## 1.3 Microarquitetura
 
-**Mapa dos 32 registradores** (o MIC-1 original tem 16; aqui o banco cresce para 32 e os campos A/B/C passam de 4 para 5 bits). Proposta:
+**Mapa dos 32 registradores** (o MIC-1 original tem 16; aqui o banco cresce para 32 e os campos A/B/C passam de 4 para 5 bits):
 
 | Registrador | Nome             | Função                                                  |
 | ----------- | ---------------- | ------------------------------------------------------- |
@@ -52,7 +52,7 @@ A especificação da ISA está em [isa.md](isa.md).
 | ADDR    | 8     | endereço do desvio                                                                                |
 | **IF**  | 1     | **novo:** indica que o `RD` é uma busca de instrução (ver [memória e cache](decisoes-projeto.md)) |
 
-> Codificações de COND, ALU e SH seguem o livro do Tanenbaum; confirmar com o material da disciplina, pois os PDFs anexados não as listam.
+> Codificações de COND, ALU e SH adotadas pelo projeto: as da tabela acima, conforme a proposta de microarquitetura.
 
 **Pipeline (estilo MIC-3):** (1) leitura para A/B; (2) ALU e shifter; (3) escrita via C e em MAR/MBR. Diretrizes:
 
@@ -71,11 +71,14 @@ A especificação da ISA está em [isa.md](isa.md).
 - **Região de E/S** (`0xFFD` a `0xFFF`): não cacheável; o acesso é tratado direto pelo simulador.
 - **Coerência I/D:** não tratada. Assume-se que o programa não altera o próprio código.
 
-## 1.5 Pontos a confirmar com o professor/grupo
+## 1.5 Decisões confirmadas
 
-1. **ISA de acumulador × "baseada em registradores".** A ISA do PDF não expõe registradores ao programador (só `ac`, `pc` e `sp`). O banco de 32 registradores fica como parte da **microarquitetura** (R16 a R31 sem uso). Confirmar se a ISA deve permanecer assim ou ser estendida.
-2. **Largura do campo `x`.** O plano mantém **12 bits** (como no PDF). Alargar exige mudar só `AMASK`, o montador e o tamanho da memória, sem tocar no microprograma.
-3. **Endereços de E/S e `HALT`** (`0xFFD` a `0xFFF`) e o **SP inicial** (`0xFFC`): proposta nossa, não consta nos PDFs.
-4. **Codificação dos campos COND/ALU/SH** (ver [microarquitetura](decisoes-projeto.md)).
-5. **Bit IF** para rotear I-cache/D-cache: proposta nossa; outra opção é separar por região de endereços.
-6. **Empacotamento da GUI** (opção A ou B, [comunicação simulador ↔ GUI](arquitetura-sistema.md)).
+1. **ISA:** manter as 23 instruções da [ISA de acumulador com pilha](isa.md), sem acrescentar instruções ou expor o banco de 32 registradores ao programador. `ac`, `pc` e `sp` continuam visíveis; os demais registradores pertencem à microarquitetura.
+2. **Campo `x`:** operando de 12 bits (`[11:0]`) do formato A. Representa endereço de palavra em acessos diretos e desvios, constante em `LOCO` ou deslocamento em acessos relativos a `sp`. Seu intervalo é de 0 a 4095; `AMASK = 0x00000FFF` o extrai da instrução. Manter essa largura e a memória de 4096 palavras. O campo `y` de 8 bits é separado e usado por `INSP`/`DESP`.
+3. **E/S e pilha:** manter E/S mapeada nos endereços `0xFFD` a `0xFFF`, com `HALT`, `OUTI` e `OUTC` como pseudo-instruções, e `SP` inicial em `0xFFC`.
+4. **Microarquitetura:** adotar o mapa de registradores, o formato de microinstrução e as codificações de `COND`, `ALU` e `SH` descritos acima.
+5. **Caches:** usar o bit `IF` da microinstrução para rotear buscas à I-cache e acessos a dados à D-cache, conforme a seção 1.4.
+
+## 1.6 Empacotamento da GUI
+
+A [arquitetura do sistema](arquitetura-sistema.md) define a GUI no host e o simulador em Docker como padrão; a alternativa de imagem única fica disponível se a GUI precisar de container.
