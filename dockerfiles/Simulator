@@ -1,0 +1,23 @@
+FROM debian:bookworm-slim AS build
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends cmake g++ ninja-build \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /src
+COPY CMakeLists.txt ./
+COPY src/ ./src/
+
+RUN cmake -S . -B /build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+    && cmake --build /build --parallel
+
+FROM debian:bookworm-slim
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libstdc++6 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=build /build/mic3_simulator /usr/local/bin/mic3_simulator
+WORKDIR /data
+USER 10001:10001
+ENTRYPOINT ["/usr/local/bin/mic3_simulator"]

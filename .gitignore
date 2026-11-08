@@ -1,0 +1,7 @@
+# builds
+**/dist/**
+**/builds/**
+**/bin/**
+
+# vscode settings
+/.vscode/

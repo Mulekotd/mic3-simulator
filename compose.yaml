@@ -1,0 +1,11 @@
+services:
+  simulator:
+    container_name: simulator
+    image: mic3-sim
+    build:
+      context: ./simulator
+      dockerfile: ../dockerfiles/Simulator
+    command: ["/data/${SIMULATOR_PROGRAM:-programa.bin}", "--cycles", "${SIMULATOR_CYCLES:-1}"]
+    volumes:
+      - ./shared:/data:ro
+    network_mode: none
