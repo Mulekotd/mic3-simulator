@@ -4,8 +4,6 @@ Esta página descreve o caminho de dados da fase 2 e as extensões planejadas. O
 
 ## Caminho de dados
 
-Os [esquemáticos vetoriais](esquematicos.md) mostram a CPU completa, a RAM e os barramentos que as conectam na implementação atual.
-
 `MAR` e `MBR` são a interface com a memória. O bit `IF` marca uma leitura de instrução para o futuro caminho da I-cache; atualmente leituras e escritas chegam à RAM sem caches. A Memória de Controle é separada e nunca passa pelas caches de programa. [Memória e caches](memory.md) descreve latência, stalls e E/S.
 
 ## Registradores e estado inicial

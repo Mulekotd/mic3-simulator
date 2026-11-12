@@ -2,8 +2,6 @@
 
 Esta página especifica o modelo de memória. O simulador implementa RAM de 4096 palavras, carga de `.bin`, E/S mapeada e latência configurável; caches e árbitro permanecem planejados. Os endereços abaixo são **índices de palavras de 32 bits**.
 
-Veja também os [esquemáticos vetoriais da memória e da conexão CPU–RAM](esquematicos.md).
-
 ## Mapa e parâmetros
 
 | Faixa           | Uso                                                         |

@@ -46,5 +46,23 @@ services:
       - ${GUI_XAUTHORITY:-/dev/null}:/tmp/.Xauthority:ro
     network_mode: none
 
+  gui-windows:
+    profiles: [gui-windows]
+    image: mic3-gui
+    build:
+      context: .
+      dockerfile: dockerfiles/GUI
+    user: "1000:1000"
+    environment:
+      DISPLAY: host.docker.internal:0.0
+      LIBGL_ALWAYS_SOFTWARE: "1"
+    command: ["unix:///run/mic3/simulator.sock", "/data/${SIMULATOR_PROGRAM:-sum.bin}"]
+    depends_on:
+      simulator:
+        condition: service_started
+    volumes:
+      - ./shared:/data:ro
+      - mic3-ipc:/run/mic3
+
 volumes:
   mic3-ipc:
