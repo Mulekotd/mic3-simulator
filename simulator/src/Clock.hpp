@@ -10,12 +10,12 @@ public:
 
     void tick(OnRisingEdge&& onRisingEdge) {
         std::forward<OnRisingEdge>(onRisingEdge)();
-        ++cycles_;
+        ++cycleCount;
     };
 
-    std::uint64_t cycles() const { return cycles_; };
-    void reset() { cycles_ = 0; };
+    std::uint64_t cycles() const { return cycleCount; };
+    void reset() { cycleCount = 0; };
 
 private:
-    std::uint64_t cycles_ = 0;
+    std::uint64_t cycleCount = 0;
 };

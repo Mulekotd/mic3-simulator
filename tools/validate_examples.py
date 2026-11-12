@@ -44,6 +44,7 @@ def main():
 
         for name, values in expected.items():
             execute([ASSEMBLER, ROOT / 'examples' / name, '-o', binary])
+
             result = execute([SIMULATOR, binary, '--cycles', '1000000', '--trace'])
 
             output = [
@@ -58,6 +59,7 @@ def main():
             if name == 'all_instructions.asm':
                 # Cada retorno ao MPC 0 representa uma instrução ISA concluída.
                 executed = set()
+
                 pattern = r'micro=(\d+).*?IR=(\d+).*?MPC=0\b'
 
                 for match in re.finditer(pattern, result.stderr):

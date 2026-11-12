@@ -1,4 +1,3 @@
-; Microprograma MIC-1, linhas 0 a 78, transcrito do material da disciplina.
 ; Busca e identificação
 ; @phase Busca
 0: mar:=pc; rd; ifetch;

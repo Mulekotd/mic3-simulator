@@ -9,12 +9,11 @@
 #include <string>
 #include <vector>
 
-// Carrega uma imagem plana: uma palavra de 32 bits a cada quatro bytes.
 inline std::size_t loadBinaryImage(const std::string& path, Memory& memory) {
     std::ifstream file(path, std::ios::binary);
 
     if (!file)
-        throw std::runtime_error("não foi possivel abrir o programa: " + path);
+        throw std::runtime_error("não foi possível abrir o programa: " + path);
 
     const std::vector<unsigned char> bytes{
         std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()
@@ -25,7 +24,7 @@ inline std::size_t loadBinaryImage(const std::string& path, Memory& memory) {
 
     // Verifica a imagem inteira antes de alterar o conteúdo da memória.
     if (bytes.size() % Memory::wordBytes != 0)
-        throw std::runtime_error("o tamanho do programa deve ser multiplo de 4 bytes");
+        throw std::runtime_error("o tamanho do programa deve ser múltiplo de 4 bytes");
 
     const auto words = bytes.size() / Memory::wordBytes;
 

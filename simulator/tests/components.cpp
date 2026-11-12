@@ -23,17 +23,22 @@ void check(bool condition, const char* message) {
 template <typename Exception, typename Action>
 
 void checkThrows(Action action, const char* message) {
-    try { action(); }
-    catch (const Exception&) { return; }
+    try {
+        action();
+    } catch (const Exception&) {
+        return;
+    }
 
     throw std::runtime_error(message);
 }
 
 void testDatapath() {
     const auto zero = ALU::execute(0xFFFFFFFFu, 1, 0b00);
+
     check(zero.value == 0 && zero.z && !zero.n, "ALU: soma com overflow e flag Z");
 
     const auto negative = ALU::execute(0x80000000u, 0xFFFFFFFFu, 0b01);
+
     check(negative.value == 0x80000000u && negative.n && !negative.z, "ALU: AND e flag N");
     check(ALU::execute(42, 0, 0b10).value == 42, "ALU: passagem de A");
     check(ALU::execute(0, 0, 0b11).value == 0xFFFFFFFFu, "ALU: inversao de A");
@@ -56,6 +61,7 @@ void testDatapath() {
 
 void testState() {
     CPURegisters cpu;
+
     check(cpu.bank.read(RegisterBank::ZERO) == 0 &&
           cpu.bank.read(RegisterBank::ONE) == 1 &&
           cpu.bank.read(RegisterBank::SP) == 0xFFCu, "registradores: estado inicial");
@@ -64,7 +70,9 @@ void testState() {
     cpu.bank.write(RegisterBank::ONE, 5);
 
     check(cpu.bank.read(RegisterBank::ZERO) == 0 && cpu.bank.read(RegisterBank::ONE) == 1, "registradores: constantes imutaveis");
+
     cpu.bank.write(RegisterBank::PC, 9, false);
+
     check(cpu.bank.read(RegisterBank::PC) == 0, "registradores: escrita desabilitada");
 
     cpu.bank.write(RegisterBank::PC, 9);
@@ -77,16 +85,17 @@ void testState() {
 
     Clock clock;
     int edges = 0;
-
     clock.tick([&] { ++edges; });
+
     check(edges == 1 && clock.cycles() == 1, "clock: borda e contagem");
 
     clock.reset();
+
     check(clock.cycles() == 0, "clock: reset");
 
     ControlStore store;
-
     store.write(255, ControlStore::wordMask);
+
     check(store.read(255) == ControlStore::wordMask, "memoria de controle: 36 bits");
 
     checkThrows<std::out_of_range>([&] { store.write(0, ControlStore::wordMask + 1); }, "memoria de controle: limite de 36 bits");
@@ -95,14 +104,15 @@ void testState() {
     check(store.read(255) == 0, "memoria de controle: reset");
 
     RAM ram;
-
     ram.write(RAM::size - 1, 0x12345678u);
+
     check(ram.read(RAM::size - 1) == 0x12345678u, "RAM: ultima palavra");
 
     checkThrows<std::out_of_range>([&] { ram.read(RAM::size); }, "RAM: leitura fora do limite");
     checkThrows<std::out_of_range>([&] { ram.write(RAM::size, 0); }, "RAM: escrita fora do limite");
 
     ram.reset();
+
     check(ram.read(RAM::size - 1) == 0, "RAM: reset");
 }
 
@@ -110,7 +120,9 @@ void writeBytes(const std::filesystem::path& path, const std::vector<unsigned ch
     std::ofstream file(path, std::ios::binary);
 
     check(static_cast<bool>(file), "teste: criacao do arquivo binario");
+
     file.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
+
     check(static_cast<bool>(file), "teste: escrita do arquivo binario");
 }
 
@@ -128,6 +140,7 @@ void testLoader(const std::filesystem::path& directory) {
 
     RAM ram;
     ram.write(10, 99);
+
     writeBytes(path, {0x78, 0x56, 0x34, 0x12, 0xFF, 0x00, 0x00, 0x80});
 
     check(loadBinaryImage(path.string(), ram) == 2, "loader: contagem de palavras");

@@ -4,29 +4,9 @@ Esta página descreve o caminho de dados da fase 2 e as extensões planejadas. O
 
 ## Caminho de dados
 
-```mermaid
-flowchart LR
-    CS[Memória de Controle<br/>256 × 36 bits] --> MIR[MIR]
-    MIR --> SEL[Seletores A, B e C<br/>e sinais de controle]
-    RB[Banco R0–R31] -->|A| LA[A latch]
-    RB -->|B| LB[B latch]
-    LA --> AMUX[AMUX]
-    MBR[MBR] --> AMUX
-    AMUX --> ALU[ULA<br/>N e Z]
-    LB --> ALU
-    ALU --> SH[Shifter]
-    SH -->|C, se ENC| RB
-    SH -->|se MBR| MBR
-    LB -->|se MAR| MAR[MAR]
-    MAR --> CACHE[I-cache / D-cache<br/>ou RAM direta na fase 2]
-    MBR <-->|RD / WR| CACHE
-    ALU --> MMUX[MMUX]
-    MIR --> MMUX
-    MMUX --> MPC[MPC 8 bits]
-    MPC --> CS
-```
+Os [esquemáticos vetoriais](esquematicos.md) mostram a CPU completa, a RAM e os barramentos que as conectam na implementação atual.
 
-`MAR` e `MBR` são a interface com a memória. O bit `IF` do MIR encaminha uma leitura de instrução à I-cache; outras leituras e escritas vão à D-cache. Na fase 2, sem caches, ambos chegam à RAM. A Memória de Controle é separada e nunca passa pelas caches de programa. [Memória e caches](memory.md) descreve latência, stalls e E/S.
+`MAR` e `MBR` são a interface com a memória. O bit `IF` marca uma leitura de instrução para o futuro caminho da I-cache; atualmente leituras e escritas chegam à RAM sem caches. A Memória de Controle é separada e nunca passa pelas caches de programa. [Memória e caches](memory.md) descreve latência, stalls e E/S.
 
 ## Registradores e estado inicial
 
@@ -47,7 +27,7 @@ O banco possui 32 registradores de 32 bits. Os seletores A, B e C têm 5 bits ca
 | R10–R15 | A–F    | `0`                | Temporários do microprograma        |
 | R16–R31 | livres | `0`                | Reservados para uso interno futuro  |
 
-Os latches A, B, MAR, MBR e MIR, o MPC e as flags N/Z começam em zero. O MPC endereça 256 palavras de 36 bits. A e B capturam os operandos selecionados pelo banco antes da operação da ULA; as escritas do barramento C e dos latches habilitados ocorrem na borda de clock. Não há escrita arquitetural em R0 nem em R6–R9.
+Os latches A, B, MAR, MBR e MIR, o MPC e as flags N/Z começam em zero. O MPC endereça 256 palavras de 36 bits. Na implementação atual, as leituras combinacionais do banco alimentam diretamente AMUX e ULA; A e B guardam cópias desses operandos ao fim do ciclo para observação do estado. O MIR também registra a palavra de controle executada, enquanto a decodificação usa a saída atual da Control Store. As escritas do barramento C e dos latches habilitados ocorrem na borda de clock. Não há escrita arquitetural em R0 nem em R6–R9.
 
 ## Palavra de controle de 36 bits
 

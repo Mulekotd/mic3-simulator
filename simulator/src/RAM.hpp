@@ -17,23 +17,23 @@ public:
     void reset() override;
 
 private:
-    std::array<Word, size> words_{};
+    std::array<Word, size> words{};
 };
 
 inline std::size_t RAM::sizeWords() const { return size; }
 
 inline Word RAM::read(std::size_t address) const {
     if (address >= size)
-        throw std::out_of_range("endereco fora da RAM");
+        throw std::out_of_range("endereço fora da RAM");
 
-    return words_[address];
+    return words[address];
 }
 
 inline void RAM::write(std::size_t address, Word value) {
     if (address >= size)
-        throw std::out_of_range("endereco fora da RAM");
+        throw std::out_of_range("endereço fora da RAM");
 
-    words_[address] = value;
+    words[address] = value;
 }
 
-inline void RAM::reset() { words_.fill(0); }
+inline void RAM::reset() { words.fill(0); }

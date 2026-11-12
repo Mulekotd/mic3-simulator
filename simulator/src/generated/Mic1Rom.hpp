@@ -3,7 +3,6 @@
 #include <array>
 #include <cstdint>
 
-// Gerado de tools/microcode/mic1.masm por tools/microcode/build_rom.py.
 inline constexpr std::array<std::uint64_t, 79> mic1Rom = {
     0x10C004001ULL,
     0x005098201ULL,

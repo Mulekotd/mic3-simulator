@@ -10,5 +10,3 @@ python3 tools/microcode/build_rom.py --check
 ```
 
 `ctrl.bin` contém até 256 palavras de controle de **5 bytes little endian**; os quatro bits altos do quinto byte são zero e os endereços omitidos recebem zero. `ctrl.mlst` relaciona endereço, palavra de 36 bits, fase, linha e fonte. `ifetch` define o bit IF e exige `rd`.
-
-[`build_rom.py`](build_rom.py) usa o mesmo parser para gerar o [cabeçalho C++](../../simulator/src/generated/Mic1Rom.hpp) incorporado ao simulador atual. Execute `python3 tools/microcode/build_rom.py` para atualizá-lo.

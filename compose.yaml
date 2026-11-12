@@ -4,10 +4,10 @@ services:
     build:
       context: ./assembler
       dockerfile: ../dockerfiles/Assembler
-    user: "${ASSEMBLER_UID:-1000}:${ASSEMBLER_GID:-1000}"
-    command: ["/data/${ASSEMBLER_PROGRAM:-programa.asm}", "-o", "/data/${ASSEMBLER_OUTPUT:-programa.bin}", "-l", "/data/${ASSEMBLER_LISTING:-programa.lst}"]
+    user: "${ASSEMBLER_UID:-0}:${ASSEMBLER_GID:-0}"
     volumes:
       - ${ASSEMBLER_DATA_DIR:-./shared}:/data
+      - ./examples:/examples:ro
     network_mode: none
 
   simulator:
@@ -16,10 +16,35 @@ services:
     build:
       context: ./simulator
       dockerfile: ../dockerfiles/Simulator
-    command: ["/data/${SIMULATOR_PROGRAM:-programa.bin}", "--cycles", "${SIMULATOR_CYCLES:-1000000}"]
+    command: ["--serve-local", "/run/mic3/simulator.sock"]
     depends_on:
       assembler:
         condition: service_completed_successfully
     volumes:
       - ./shared:/data:ro
+      - mic3-ipc:/run/mic3
     network_mode: none
+
+  gui:
+    profiles: [gui]
+    image: mic3-gui
+    build:
+      context: .
+      dockerfile: dockerfiles/GUI
+    user: "${GUI_UID:-1000}:${GUI_GID:-1000}"
+    environment:
+      DISPLAY: "${DISPLAY:-:0}"
+      XAUTHORITY: /tmp/.Xauthority
+    command: ["unix:///run/mic3/simulator.sock", "/data/${SIMULATOR_PROGRAM:-sum.bin}"]
+    depends_on:
+      simulator:
+        condition: service_started
+    volumes:
+      - ./shared:/data:ro
+      - mic3-ipc:/run/mic3
+      - /tmp/.X11-unix:/tmp/.X11-unix:ro
+      - ${GUI_XAUTHORITY:-/dev/null}:/tmp/.Xauthority:ro
+    network_mode: none
+
+volumes:
+  mic3-ipc:

@@ -3,11 +3,10 @@
 ## Fase 0: Fundamentos (≈ 1 semana)
 - [X] Definir divisão de tarefas da equipe (montador / simulador / GUI / infra).
 - [X] Criar repositório e convenções (estilo C++, estilo Python, commits, branches).
-- [X] Decidir o empacotamento da GUI: opção A (host) ou B (imagem única) ([comunicação simulador ↔ GUI](arquitetura-sistema.md)).
-- [X] Escolher a biblioteca de GUI (PyQt/PySide ou Tkinter).
-- [ ] "Hello world" da comunicação: simulador ecoando bytes pelo `stdin`/`stdout` e a GUI Python recebendo, dentro de `docker run -i`.
+- [X] Escolher a biblioteca de GUI: Raylib com C++17.
+- [X] Comunicação binária entre o simulador e um cliente, por `stdin`/`stdout`.
 
-**Entrega:** repositório estruturado e eco de bytes simulador ↔ Python funcionando.
+**Entrega:** repositório estruturado e canal binário simulador ↔ cliente funcionando.
 
 ## Fase 1: Especificação (≈ 1 semana)
 - [X] `docs/isa.md`: tabela de instruções, formatos de bits, E/S mapeada em memória, exemplos.
@@ -68,21 +67,23 @@ Reproduzir o MIC-1 do PDF com palavra de 32 bits e 32 registradores, executando 
 **Entrega:** simulador completo (pipeline + caches). **Critério:** resultados idênticos aos da Fase 4; estatísticas de cache coerentes.
 
 ## Fase 6: Camada TX/RX do simulador (≈ 1 semana)
-- [ ] Leitura do `stdin` e escrita no `stdout` em modo binário, com `fflush` após cada quadro.
-- [ ] Codificador/decodificador de quadros (`TYPE | LEN | PAYLOAD`).
-- [ ] Comandos `LOAD_*`, `STEP_CYCLE`, `STEP_INSTR`, `RUN`, `PAUSE`, `RESET`, breakpoints, `READ_MEM`, `CONFIG`; leitura não bloqueante do RX durante `RUN`.
-- [ ] Emissão de `CYCLE_STATE` por ciclo, com os modos *completo*, *compacto* e *só final*.
-- [ ] Mensagens `PROGRAM_OUT`, `HALTED`, `STATS`, `ERROR`, `ACK`/`NACK`.
-- [ ] Geração do cabeçalho C++ a partir de `protocol/protocol.yaml`.
-- [ ] Verificação manual com um pequeno cliente Python (`tools/tx_rx_client.py`): carregar um `.bin`, executar e receber a saída.
+- [X] Leitura do `stdin` e escrita integral de cada quadro no `stdout` em modo binário (`--protocol`).
+- [X] Codificador/decodificador de quadros (`TYPE | LEN | PAYLOAD`).
+- [X] Comandos `LOAD_*`, `STEP_CYCLE`, `STEP_INSTR`, `STEP_BACK`, `RUN`, `PAUSE`, `RESET`, breakpoints, `READ_MEM`, `CONFIG`; leitura não bloqueante do RX durante `RUN`.
+- [X] Emissão de `CYCLE_STATE` por ciclo, com os modos *completo*, *compacto* e *só final*.
+- [X] Mensagens `PROGRAM_OUT`, `HALTED`, `STATS`, `ERROR`, `ACK`/`NACK`.
+- [X] Geração dos IDs e enums do cabeçalho C++ a partir de `protocol/protocol.yaml`.
+- [X] Cliente Python de verificação (`tools/tx_rx_client.py`): carregar um `.bin`, executar e receber a saída.
 
 **Entrega:** simulador controlável por bytes, dentro do container. **Critério:** o cliente carrega um `.bin`, executa e recebe `PROGRAM_OUT` e `HALTED` corretos.
 
-## Fase 7: GUI em Python (≈ 2 semanas, pode iniciar com quadros gravados após a Fase 1)
-- [ ] Módulo de protocolo em Python (gerado do `protocol.yaml`) e inicialização do simulador via `subprocess` (`docker run -i` ou binário local).
-- [ ] **Thread de leitura** separada da thread da interface (sinais/filas), para a GUI não travar em `RUN`.
+## Fase 7: GUI em C++ com Raylib (≈ 2 semanas)
+- [X] Base da janela Raylib e conexão TX/RX local por pipes ou socket Unix compartilhado com o serviço persistente do Compose.
+- [X] **Thread de leitura** separada da janela, com fila de quadros, para a GUI não travar em `RUN`.
+- [X] Controles básicos de carga, passo por ciclo/instrução, retorno de instrução, execução, pausa, retomada e reset; visualização inicial de ciclo e saída.
+- [ ] Acabamento visual e tratamento de erros de interface.
 - [ ] Painéis de pipeline, microinstrução (`.mlst`), registradores, caches, memória (`READ_MEM`) e assembly (`.lst`), com destaque das mudanças do ciclo.
-- [ ] Controles de execução, breakpoints, carga via `LOAD_*`, saída e métricas.
+- [ ] Controles completos de breakpoints e memória, métricas e estados detalhados.
 - [ ] Modo *replay* de quadros para desenvolver a GUI sem o simulador.
 
 **Entrega:** execução ciclo a ciclo de forma amigável. **Critério:** um usuário novo consegue carregar e executar um programa sem ler o código-fonte.
@@ -92,4 +93,3 @@ Reproduzir o MIC-1 do PDF com palavra de 32 bits e 32 registradores, executando 
 - [ ] Demonstração com 3 a 5 programas representativos.
 - [ ] Relatório de desempenho: CPI e taxa de acerto **com e sem cache/pipeline** (justifica o projeto).
 - [ ] README, manual de ISA, manual do montador/microasm, manual do protocolo, manual da GUI.
-- [ ] Ensaio da apresentação.

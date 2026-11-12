@@ -10,4 +10,4 @@
 | `procedure_call.asm`   | Usa `CALL`/`RETN` e imprime 14       |
 | `all_instructions.asm` | Executa as 23 instruções e imprime 3 |
 
-Para montar um exemplo, execute o [montador](../README.md#montador). Os binários gerados seguem a [ISA](../docs/isa.md). O simulador executa o [microprograma transcrito](../tools/microcode/mic1.masm), sem pipeline nem cache. `python3 tools/validate_examples.py` monta e confere a saída de todos os exemplos.
+`docker compose up -d --build` monta todos os exemplos em `shared/`, com os nomes `nome.bin` e `nome.lst` correspondentes a cada `nome.asm`. Veja o [passo a passo no README](../README.md#executar-com-docker-compose) para escolher um binário no simulador. Os binários seguem a [ISA](../docs/isa.md). O simulador executa o [microprograma transcrito](../tools/microcode/mic1.masm), sem pipeline nem cache.

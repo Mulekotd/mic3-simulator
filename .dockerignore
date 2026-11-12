@@ -1,0 +1,7 @@
+.git/
+**/build/
+**/builds/
+**/bin/
+**/dist/
+**/__pycache__/
+shared/

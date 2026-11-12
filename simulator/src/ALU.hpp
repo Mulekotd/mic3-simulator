@@ -6,11 +6,11 @@
 
 class ALU {
 public:
-    static Result execute(std::uint32_t a, std::uint32_t b, std::uint8_t alu_op);
+    static Result execute(std::uint32_t a, std::uint32_t b, std::uint8_t aluOp);
 };
 
-inline Result ALU::execute(std::uint32_t a, std::uint32_t b, std::uint8_t alu_op) {
-    switch (alu_op) {
+inline Result ALU::execute(std::uint32_t a, std::uint32_t b, std::uint8_t aluOp) {
+    switch (aluOp) {
         case 0b00: return makeResult(a + b);
         case 0b01: return makeResult(a & b);
         case 0b10: return makeResult(a);

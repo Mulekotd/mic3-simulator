@@ -45,24 +45,23 @@ struct Program {
 
 class Assembler {
 public:
-    explicit Assembler(std::filesystem::path input) : input_(std::move(input)) {}
+    explicit Assembler(std::filesystem::path input) : input(std::move(input)) {}
 
     Program assemble() {
-        // A primeira passagem coleta rótulos; a segunda resolve operandos e codifica.
         readSource();
-        firstPass();
-        return secondPass();
+        firstPass(); // Coleta rótulos
+        return secondPass(); // Resolve operandos e codifica
     }
 
 private:
-    std::filesystem::path input_;
-    std::vector<SourceLine> lines_;
-    std::vector<Statement> statements_;
-    std::map<std::string, std::uint32_t> symbols_;
-    std::uint32_t imageWords_ = 0;
+    std::filesystem::path input;
+    std::vector<SourceLine> lines;
+    std::vector<Statement> statements;
+    std::map<std::string, std::uint32_t> symbols;
+    std::uint32_t imageWords = 0;
 
     [[noreturn]] void error(std::size_t line, std::size_t column, const std::string& message) const {
-        throw std::runtime_error(input_.string() + ":" + std::to_string(line) + ":" + std::to_string(column) + ": " + message);
+        throw std::runtime_error(input.string() + ":" + std::to_string(line) + ":" + std::to_string(column) + ": " + message);
     }
 
     static bool identifierStart(char ch) {
@@ -90,10 +89,10 @@ private:
     }
 
     void readSource() {
-        std::ifstream file(input_);
+        std::ifstream file(input);
 
         if (!file)
-            throw std::runtime_error("não foi possível abrir: " + input_.string());
+            throw std::runtime_error("não foi possível abrir: " + input.string());
 
         std::string text;
 
@@ -101,11 +100,11 @@ private:
             if (!text.empty() && text.back() == '\r')
                 text.pop_back();
 
-            lines_.push_back({number, text});
+            lines.push_back({number, text});
         }
 
         if (file.bad())
-            throw std::runtime_error("erro ao ler: " + input_.string());
+            throw std::runtime_error("erro ao ler: " + input.string());
     }
 
     static void skipSpace(const std::string& text, std::size_t& pos) {
@@ -133,6 +132,7 @@ private:
             error(line, column, "número inválido");
 
         std::uint64_t magnitude = 0;
+
         const auto parsed = std::from_chars(token.data(), token.data() + token.size(), magnitude, base);
 
         if (parsed.ec != std::errc{} || parsed.ptr != token.data() + token.size() || magnitude > static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()))
@@ -146,9 +146,9 @@ private:
     std::int64_t operandValue(const Statement& statement) const {
         // Rótulos são resolvidos somente após a primeira passagem.
         if (identifier(statement.operand)) {
-            const auto found = symbols_.find(statement.operand);
+            const auto found = symbols.find(statement.operand);
 
-            if (found == symbols_.end())
+            if (found == symbols.end())
                 error(statement.line, statement.operandColumn, "rótulo indefinido: " + statement.operand);
 
             return found->second;
@@ -181,7 +181,7 @@ private:
         // Cada instrução ou .word ocupa uma palavra; .org avança o endereço.
         std::uint32_t address = 0;
 
-        for (const auto& source : lines_) {
+        for (const auto& source : lines) {
             const auto comment = source.text.find(';');
             const std::string text = source.text.substr(0, comment);
             std::size_t pos = 0;
@@ -203,7 +203,7 @@ private:
                     if (address >= ramWords)
                         error(source.number, first + 1, "rótulo fora da RAM");
 
-                    if (!symbols_.emplace(label, address).second)
+                    if (!symbols.emplace(label, address).second)
                         error(source.number, first + 1, "rótulo duplicado: " + label);
 
                     ++pos;
@@ -264,7 +264,7 @@ private:
                     error(source.number, operandColumn, ".org deve avançar até um endereço da RAM");
 
                 address = static_cast<std::uint32_t>(target);
-                imageWords_ = std::max(imageWords_, address);
+                imageWords = std::max(imageWords, address);
 
                 continue;
             }
@@ -272,10 +272,10 @@ private:
             if (address >= ramWords)
                 error(source.number, operationColumn, "programa excede 4096 palavras");
 
-            statements_.push_back({address, source.number, operationColumn, operation, operand, operandColumn, source.text});
+            statements.push_back({address, source.number, operationColumn, operation, operand, operandColumn, source.text});
             ++address;
 
-            imageWords_ = std::max(imageWords_, address);
+            imageWords = std::max(imageWords, address);
         }
     }
 
@@ -317,8 +317,10 @@ private:
         };
 
         const auto b = std::find(formatB.begin(), formatB.end(), op);
+
         // Formato B: subopcode par; INSP e DESP também usam o campo y.
         const auto subOpcode = static_cast<std::uint32_t>(2 * (b - formatB.begin()));
+
         std::uint32_t value = 0;
 
         if (op == "INSP" || op == "DESP") {
@@ -337,11 +339,11 @@ private:
         Program result;
 
         // Os endereços pulados por .org são preenchidos com palavras zero.
-        result.words.resize(imageWords_, 0);
-        result.sources.resize(imageWords_, "; preenchimento de .org");
-        result.lines.resize(imageWords_, 0);
+        result.words.resize(imageWords, 0);
+        result.sources.resize(imageWords, "; preenchimento de .org");
+        result.lines.resize(imageWords, 0);
 
-        for (const auto& statement : statements_) {
+        for (const auto& statement : statements) {
             result.words[statement.address] = encode(statement);
             result.sources[statement.address] = statement.source;
             result.lines[statement.address] = statement.line;
@@ -393,7 +395,7 @@ void writeProgram(const Program& program, const std::filesystem::path& output, c
 }
 
 void usage() {
-    std::cerr << "Uso: assembler programa.asm -o programa.bin [-l programa.lst]\n";
+    std::cerr << "Uso: assembler programa.asm [-o saida.bin] [-l saida.lst]\n";
 }
 
 bool sameFile(const std::filesystem::path& left, const std::filesystem::path& right) {
@@ -409,12 +411,13 @@ bool sameFile(const std::filesystem::path& left, const std::filesystem::path& ri
 } // namespace
 
 int main(int argc, char* argv[]) {
-    if (argc < 4) {
+    if (argc < 2) {
         usage();
         return 2;
     }
 
     std::filesystem::path input, output, listing;
+
     input = argv[1];
 
     bool outputSeen = false, listingSeen = false;
@@ -447,14 +450,26 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    if (!outputSeen || output.empty() || input.empty()) {
+    if (input.empty()) {
+        usage();
+        return 2;
+    }
+
+    if (!outputSeen)
+        output = input.stem().string() + ".bin";
+
+    if (!listingSeen) {
+        listing = output;
+        listing.replace_extension(".lst");
+    }
+
+    if (output.empty() || listing.empty()) {
         usage();
         return 2;
     }
 
     try {
-        if (sameFile(input, output) ||
-            (listingSeen && (listing.empty() || sameFile(input, listing) || sameFile(output, listing)))) {
+        if (sameFile(input, output) || sameFile(input, listing) || sameFile(output, listing)) {
             std::cerr << "entrada, binário e listagem devem usar arquivos diferentes\n";
             return 2;
         }

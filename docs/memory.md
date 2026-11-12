@@ -1,6 +1,8 @@
 # Memória, caches e E/S
 
-Esta página especifica o modelo de memória. O simulador implementa RAM de 4096 palavras, carga de `.bin`, acesso de dois ciclos no microprograma e E/S mapeada; caches, árbitro e latência configurável permanecem planejados. Os endereços abaixo são **índices de palavras de 32 bits**.
+Esta página especifica o modelo de memória. O simulador implementa RAM de 4096 palavras, carga de `.bin`, E/S mapeada e latência configurável; caches e árbitro permanecem planejados. Os endereços abaixo são **índices de palavras de 32 bits**.
+
+Veja também os [esquemáticos vetoriais da memória e da conexão CPU–RAM](esquematicos.md).
 
 ## Mapa e parâmetros
 
@@ -22,7 +24,7 @@ Esta página especifica o modelo de memória. O simulador implementa RAM de 4096
 | `d_lines`        | 16       | Potência de 2: 1 a 256               |
 | `memory_latency` | 2 ciclos | Inteiro de 1 a 65535                 |
 
-Os quatro parâmetros variáveis serão aceitos por `CONFIG` no [protocolo](protocol.md) com a execução parada; o modo CLI futuro poderá expor os mesmos valores. Uma configuração nova esvazia ambas as caches e zera os contadores de cache. A capacidade de cada cache é `lines × line_words × 4` bytes. Com os padrões, cada cache tem 64 palavras, ou 256 bytes.
+Os quatro parâmetros variáveis são aceitos por `CONFIG` no [protocolo](protocol.md) com a execução parada. `memory_latency` já afeta as transações de RAM; os parâmetros das caches ficam armazenados, mas não afetam a execução enquanto a Fase 5 não estiver implementada. A capacidade prevista de cada cache é `lines × line_words × 4` bytes. Com os padrões, cada cache terá 64 palavras, ou 256 bytes.
 
 ## RAM e handshake
 

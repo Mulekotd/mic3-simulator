@@ -19,5 +19,6 @@ RUN apt-get update \
 
 COPY --from=build /build/mic3_simulator /usr/local/bin/mic3_simulator
 WORKDIR /data
+RUN mkdir -p /run/mic3 && chmod 1777 /run/mic3
 USER 10001:10001
 ENTRYPOINT ["/usr/local/bin/mic3_simulator"]

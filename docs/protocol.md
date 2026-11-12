@@ -1,17 +1,17 @@
 # Protocolo binário TX/RX, versão 1
 
-Esta é a especificação planejada para a comunicação entre GUI e simulador. **O executável atual ainda não implementa o protocolo**; sua saída textual de linha de comando não é um quadro TX. Os IDs, tipos e layouts canônicos estão em [protocol/protocol.yaml](../protocol/protocol.yaml), fonte para os futuros módulos C++ e Python.
+Esta é a especificação da comunicação entre a GUI Raylib em C++ e o simulador. O executável usa este fluxo com `--protocol` por pipes ou `--serve-local /run/mic3/simulator.sock` por socket Unix; a CLI textual continua disponível com um arquivo `.bin`. No Compose, o serviço `simulator` usa o socket local e permanece ativo entre sessões da GUI. Os IDs, tipos e layouts canônicos estão em [protocol/protocol.yaml](../protocol/protocol.yaml), que gera os IDs e enums C++ por `tools/generate_protocol_cpp.py`.
 
 ## Transporte e quadro
 
-RX é `stdin` do simulador e TX é `stdout`. Ambos são fluxos de bytes, sem TTY. Logs e diagnósticos vão para `stderr`. O emissor descarrega `stdout` após cada quadro. Todos os inteiros de mais de um byte usam **little-endian**; não há alinhamento nem padding. Endereços são índices de palavras de 32 bits.
+No modo `--protocol`, RX é `stdin` do simulador e TX é `stdout`. No modo `--serve-local`, RX e TX compartilham um socket Unix acessível apenas aos processos com acesso ao volume local do Compose. Ambos são fluxos de bytes, sem TTY. Cada conexão tem uma sessão de simulação própria; ao desconectar e reconectar, a GUI carrega novamente o programa. Logs e diagnósticos vão para `stderr`. Todos os inteiros de mais de um byte usam **little-endian**; não há alinhamento nem padding. Endereços são índices de palavras de 32 bits.
 
 ```text
 byte 0       bytes 1–2          bytes 3 em diante
 TYPE (u8) | LEN (u16 LE) | PAYLOAD (LEN bytes)
 ```
 
-`LEN` vale no máximo **512**. O receptor primeiro lê exatamente 3 bytes de cabeçalho e depois exatamente `LEN` bytes. Leituras curtas de pipe não indicam fim de quadro; EOF no meio de um quadro é erro de sessão. Não há CRC: pipes preservam a ordem e a integridade dos bytes. `TYPE` desconhecido com `LEN` válido produz `ERROR(unsupported, type)` após consumir o payload. `LEN > 512` ou EOF parcial produz `ERROR(malformed_frame, type)` quando possível e encerra a sessão, porque não há ressincronização. Um comando conhecido com tamanho incorreto recebe `ACK` com `status=bad_length`.
+`LEN` vale no máximo **512**. O receptor primeiro lê exatamente 3 bytes de cabeçalho e depois exatamente `LEN` bytes. Leituras curtas do fluxo não indicam fim de quadro; EOF no meio de um quadro é erro de sessão. Não há CRC: pipes e sockets Unix preservam a ordem e a integridade dos bytes. `TYPE` desconhecido com `LEN` válido produz `ERROR(unsupported, type)` após consumir o payload. `LEN > 512` ou EOF parcial produz `ERROR(malformed_frame, type)` quando possível e encerra a sessão, porque não há ressincronização. Um comando conhecido com tamanho incorreto recebe `ACK` com `status=bad_length`.
 
 Todos os comandos conhecidos recebem um `ACK` (`status=0` para sucesso, valor não zero para NACK). O `ACK` pode preceder mensagens produzidas pelo comando. Não existem strings no fluxo; a GUI usa `.lst` e `.mlst` para mostrar nomes e código-fonte.
 
@@ -29,6 +29,7 @@ Todos os comandos conhecidos recebem um `ACK` (`status=0` para sucesso, valor n�
 | `0x14` | `RESET`      | vazio                                                                     | `ACK`                                                |
 | `0x15` | `SET_BP`     | `pc_word:u32` (4 B)                                                       | `ACK`                                                |
 | `0x16` | `CLR_BP`     | `pc_word:u32` (4 B)                                                       | `ACK`                                                |
+| `0x17` | `STEP_BACK`  | vazio                                                                     | `ACK`, `REWOUND`, `CYCLE_STATE`, `STATS`             |
 | `0x20` | `READ_MEM`   | `start_word:u32`, `word_count:u16` (6 B)                                  | `ACK`, `MEM_DATA`                                    |
 | `0x21` | `CONFIG`     | `i_lines:u16`, `d_lines:u16`, `line_words:u8`, `memory_latency:u16` (7 B) | `ACK`                                                |
 
@@ -37,6 +38,8 @@ Todos os comandos conhecidos recebem um `ACK` (`status=0` para sucesso, valor n�
 `RUN` exige `max_cycles≥1` e `report_every≥1`. `report_mode` vale `0` (completo: um `CYCLE_STATE` por ciclo), `1` (compacto: eventos de stall, miss, conclusão de macroinstrução e a cada `report_every` ciclos) ou `2` (só final: sem `CYCLE_STATE` durante `RUN`). `PROGRAM_OUT` e `HALTED` são enviados em todos os modos. Ao terminar por limite de ciclos, pausa, breakpoint ou parada do programa, `RUN` envia `RUN_STOPPED` e em seguida `STATS`. `PAUSE` é lido sem bloquear durante `RUN` e efetiva a pausa após o ciclo corrente. `STEP_CYCLE` executa um ciclo; `STEP_INSTR` executa até concluir uma macroinstrução e envia o estado final. Breakpoints são verificados **antes** da busca no PC indicado.
 
 `RESET` restaura a imagem carregada e o estado inicial da CPU, zera contadores, invalida caches e remove breakpoints; preserva a configuração de cache/latência. `READ_MEM` aceita 1–64 palavras de RAM comum, desde que `start_word + word_count ≤ 0xFFD`; a região de E/S não é legível por esse comando. `CONFIG` aceita `i_lines` e `d_lines` como potências de dois entre 1 e 256, `line_words` em {1, 2, 4, 8} e `memory_latency` entre 1 e 65535 ciclos. Só é aceito com o simulador parado; invalida caches e zera os contadores de cache. [Memória e caches](memory.md) define os padrões e políticas.
+
+`STEP_BACK` restaura o início da última macroinstrução executada, incluindo RAM, CPU e contadores. Se o simulador estiver no meio de uma instrução, volta ao início dela. O histórico guarda até 1024 inícios de instrução; `LOAD_END`, `RESET` e `CONFIG` o limpam. O comando exige execução parada e histórico disponível. A GUI remove as saídas posteriores ao `output_count` de `REWOUND`. O `CYCLE_STATE` seguinte mostra o estado restaurado.
 
 ## Mensagens TX
 
@@ -49,6 +52,7 @@ Todos os comandos conhecidos recebem um `ACK` (`status=0` para sucesso, valor n�
 | `0x93` | `HALTED`      | `cycles:u32`, `instructions:u32`                             | 8    |
 | `0x94` | `STATS`       | Treze contadores `u32`, layout abaixo                        | 52   |
 | `0x95` | `RUN_STOPPED` | `reason:u8`, `pc_word:u32`, `cycles:u32`, `instructions:u32` | 13   |
+| `0x96` | `REWOUND`     | `output_count:u32`                                           | 4    |
 | `0x9F` | `ERROR`       | `status:u8`, `offending_type:u8`                             | 2    |
 
 `PROGRAM_OUT.kind=0` interpreta `value` como inteiro de 32 bits com sinal; `kind=1` usa apenas o byte baixo como caractere. Escrita em `0xFFF` gera o primeiro tipo, em `0xFFE` gera o segundo; escrita em `0xFFD` gera `HALTED`. `HALTED` significa parada pela pseudo-instrução `HALT`, não pausa ou limite de ciclos. `RUN_STOPPED.reason` vale 0 limite, 1 pausa, 2 breakpoint, 3 HALT ou 4 macroinstrução concluída (`STEP_INSTR`). `MEM_DATA` repete o endereço e a contagem solicitados e retorna as palavras na ordem crescente.

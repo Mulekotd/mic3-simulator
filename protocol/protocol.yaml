@@ -95,6 +95,10 @@ commands:
     length: 4
     fields:
       - {name: pc_word, type: u32, min: 0, max: 4095}
+  STEP_BACK:
+    id: 0x17
+    length: 0
+    fields: []
   READ_MEM:
     id: 0x20
     length: 6
@@ -182,6 +186,11 @@ messages:
       - {name: pc_word, type: u32}
       - {name: cycles, type: u32}
       - {name: instructions, type: u32}
+  REWOUND:
+    id: 0x96
+    length: 4
+    fields:
+      - {name: output_count, type: u32}
   ERROR:
     id: 0x9f
     length: 2
