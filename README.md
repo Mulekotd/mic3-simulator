@@ -2,9 +2,13 @@
 
 Simulador de microarquitetura em C++17 com montador de assembly e microasm em Python. Executa as 23 instruções da [ISA](docs/isa.md) em uma MIC-1 de 32 bits, sem pipeline ou cache nesta etapa.
 
+## Arquitetura atual
+
+O código da interface e do núcleo está em `simulator/src/`: `MicroMachine` executa os microciclos, `CLI.cpp` carrega e executa programas, e `GUI.hpp` abre a janela Raylib. Tudo pertence ao executável `mic3_simulator`; não há processo de GUI separado nem canal TX/RX. A GUI atual mostra apenas uma janela preta. Carga, controles e visualização do estado ainda serão integrados à janela.
+
 ## Uso local
 
-Requisitos: CMake 3.12+, compilador C++17 e Python 3. A geração dos IDs do protocolo usa PyYAML. Para compilar a GUI localmente.
+Requisitos: CMake 3.12+, compilador C++17 e Python 3. Para compilar a janela, são necessárias as dependências de desenvolvimento do Raylib. O CMake procura Raylib instalado e, se não o encontrar, baixa a versão 6.2 durante a configuração. Em um ambiente sem dependências gráficas ou acesso à rede, configure o simulador com `-DMIC3_ENABLE_GUI=OFF` para compilar somente a CLI; nesse build, `--gui` informa que a interface está indisponível.
 
 ```sh
 cmake -S assembler -B assembler/builds/local
@@ -14,31 +18,11 @@ cmake -S simulator -B simulator/builds/local
 cmake --build simulator/builds/local
 
 ./assembler/builds/local/assembler examples/sum.asm -o /tmp/sum.bin -l /tmp/sum.lst
-
-./simulator/builds/local/mic3_simulator /tmp/sum.bin --cycles 100000
+./simulator/builds/local/mic3_simulator /tmp/sum.bin
+./simulator/builds/local/mic3_simulator --gui
 ```
 
-O resultado esperado é `PROGRAM_OUT=16` seguido de `HALTED`. Use `--trace` para ver os ciclos no `stderr`. O arquivo `.bin` contém palavras de 32 bits little endian, sem cabeçalho, até 4096 palavras.
-
-## Protocolo binário e GUI
-
-O simulador aceita `--protocol` para receber quadros pelo `stdin` e responder pelo `stdout`. O cliente carrega um programa e confirma `PROGRAM_OUT` e `HALTED`:
-
-```sh
-python3 tools/generate_protocol_cpp.py --check
-python3 tools/tx_rx_client.py simulator/builds/local/mic3_simulator /tmp/sum.bin
-```
-
-A base da GUI usa C++17 e Raylib. O CMake baixa Raylib durante a configuração:
-
-```sh
-cmake -S gui -B gui/builds/local
-cmake --build gui/builds/local
-
-./gui/builds/local/mic3_gui ./simulator/builds/local/mic3_simulator /tmp/sum.bin
-```
-
-Na janela, `L` carrega o `.bin`, espaço executa um ciclo, `I` uma instrução, `R` executa, `P` pausa e `X` reinicia. O painel **Pilha de execução** mostra `SP`, profundidade e as 32 palavras mais próximas do topo, com rolagem e registro das últimas alterações durante a execução. A execução local usa pipes; no Compose, a GUI se conecta ao socket Unix do serviço persistente. A leitura dos quadros ocorre em thread separada.
+O exemplo imprime `PROGRAM_OUT=16` e `HALTED`. A CLI aceita `mic3_simulator programa.bin [--cycles N] [--trace]`: `--trace` envia os ciclos ao `stderr`, e `--cycles N` limita a execução a N ciclos. Sem limite, executa até `HALT`. O arquivo `.bin` contém até 4096 palavras de 32 bits em little endian, sem cabeçalho. A janela `--gui` ainda não abre o programa `.bin`.
 
 ## Microprograma
 
@@ -49,82 +33,49 @@ python3 tools/microcode/build_rom.py --check
 python3 tools/microcode/microasm.py tools/microcode/mic1.masm -o /tmp/ctrl.bin -l /tmp/ctrl.mlst
 ```
 
-## Executar com Docker Compose
+## Docker Compose
 
-Execute os comandos a seguir na raiz do repositório. O Compose monta `./shared` em `/data` nos containers.
-
-### 1. Subir a stack
+Na raiz do repositório, `docker compose up --build` monta todos os programas de `examples/` em `shared/` e executa `sum.bin` no container do simulador. O container termina quando o programa chega a `HALT`; ele não é um serviço persistente.
 
 ```sh
-docker compose up -d --build
+docker compose up --build
 ```
 
-Essa inicialização monta todos os arquivos `.asm` de `examples/`. Cada `{{program}}.asm` produz `shared/{{program}}.bin` e `shared/{{program}}.lst`. O container `assembler` termina com código 0; o `simulator` permanece `Up`, aguardando comandos TX/RX no socket local `/run/mic3/simulator.sock`. `HALT` encerra a execução do programa, sem parar o serviço. A comunicação entre os containers usa um volume Docker.
-
-### 2. Montar os programas
-
-Para montar novamente **todos** os exemplos após alterar arquivos em `examples/`:
+Para montar novamente todos os exemplos ou apenas um arquivo:
 
 ```sh
 docker compose run --rm --no-deps assembler
-```
-
-Para montar **um** arquivo, por exemplo `examples/factorial_5.asm`:
-
-```sh
 docker compose run --rm --no-deps assembler /examples/factorial_5.asm
 ```
 
-O resultado fica em `shared/factorial_5.bin` e `shared/factorial_5.lst`. Para um programa próprio, coloque `meu_programa.asm` em `examples/` e use `/examples/meu_programa.asm` no comando. As opções `-o` e `-l` do montador permitem escolher caminhos de saída específicos.
-
-### 3. Carregar e executar um programa no simulador
-
-O serviço persistente aguarda a GUI enviar o conteúdo do `.bin` pelo protocolo. Para usar um binário próprio já montado, copie-o para `shared/`; depois passe seu nome ao iniciar a GUI no passo 4 e pressione **L** na janela. A carga copia as palavras para a RAM a partir do endereço zero; **R** inicia ou retoma a execução.
-
-Para executar e inspecionar um `.bin` diretamente no terminal, use a CLI **dentro do container do simulador**:
+Para executar outro binário no container, use `SIMULATOR_PROGRAM=factorial_5.bin docker compose up --build` ou:
 
 ```sh
-docker compose exec -T simulator mic3_simulator /data/factorial_5.bin --cycles 1000000 --trace
+docker compose run --rm --no-deps simulator /data/factorial_5.bin --trace
 ```
 
-Essa CLI cria uma execução independente da sessão aberta na GUI. `--trace` mostra cada microciclo no terminal; sem essa opção, a saída numérica aparece como `PROGRAM_OUT=...` e o fim como `HALTED`. Para acompanhar apenas os primeiros ciclos, troque o limite por `--cycles 20`.
-
-### 4. Abrir a interface de usuário
-
-**Linux com X11 ou XWayland:** no terminal gráfico, execute:
+A GUI usa a mesma imagem e o mesmo executável. No Linux com X11 ou XWayland:
 
 ```sh
 GUI_UID="$(id -u)" GUI_GID="$(id -g)" \
   GUI_XAUTHORITY="${XAUTHORITY:-/dev/null}" \
-  docker compose --profile gui up --build gui
+  docker compose --profile gui run --build --rm gui
 ```
 
-Se o servidor X exigir autenticação, `GUI_XAUTHORITY` deve apontar para um arquivo de credenciais existente. O Compose encaminha `DISPLAY` e o socket X11 à GUI. No **WSLg**, use o mesmo comando sem `GUI_XAUTHORITY`; a janela aparece no desktop do Windows e pode ficar atrás do VS Code.
+O Compose encaminha `DISPLAY` e o socket X11. No WSLg, o mesmo comando pode ser usado sem `GUI_XAUTHORITY`. No Windows com Docker Desktop e um servidor X configurado no display `0`, execute `docker compose --profile gui-windows run --build --rm gui-windows`. A janela ainda não carrega nem executa programas; use a CLI para isso.
 
-**Windows sem WSL:** use o Docker Desktop em modo de containers Linux e instale um servidor X para Windows, como [VcXsrv](https://github.com/marchaesen/vcxsrv/releases). No XLaunch, escolha *Multiple windows*, display `0`, *Start no client* e permita conexões do Docker ao servidor X (a opção *Disable access control* é a configuração mais simples). Deixe *Native OpenGL* desmarcado. Se o Firewall do Windows perguntar, permita o acesso na rede privada. Depois, no PowerShell aberto na raiz do projeto:
+## Testes e documentação
 
-```powershell
-docker compose --profile gui-windows up --build gui-windows
-```
-
-O serviço `gui-windows` usa `host.docker.internal:0.0` apenas para desenhar a janela no servidor X do Windows. O TX/RX com o simulador continua no socket Unix do volume Docker; não há transporte TCP nesse canal. O endereço `host.docker.internal` é o nome fornecido pelo [Docker Desktop para alcançar serviços no host](https://docs.docker.com/desktop/features/networking/networking-how-tos/).
-
-A GUI usa `shared/sum.bin` por padrão. Para selecionar outro binário já montado, defina `SIMULATOR_PROGRAM` antes de iniciar o perfil:
+Testes permanecem disponíveis para verificar implementações quando necessário, mas não são uma etapa obrigatória do build:
 
 ```sh
-SIMULATOR_PROGRAM=factorial_5.bin GUI_UID="$(id -u)" GUI_GID="$(id -g)" \
-  docker compose --profile gui up --build gui
+cmake -S simulator -B simulator/builds/tests -DMIC3_ENABLE_GUI=OFF -DBUILD_TESTING=ON
+cmake --build simulator/builds/tests
+ctest --test-dir simulator/builds/tests --output-on-failure
 ```
 
-No PowerShell, use `$env:SIMULATOR_PROGRAM = "factorial_5.bin"` antes de `docker compose --profile gui-windows up --build gui-windows`.
-
-Na janela, pressione **L** para carregar, **R** para executar ou retomar, **P** para pausar, **I** para avançar uma instrução, **B** para voltar uma instrução, **Espaço** para avançar um microciclo e **X** para reiniciar. O build da imagem GUI baixa Raylib pelo `gui/CMakeLists.txt`. Para parar a stack, execute `docker compose down`.
-
-## Verificação e documentação
-
-Os programas montados podem ser verificados com a CLI no container `simulator`, conforme o passo 3.
-
 - [Exemplos](examples/README.md)
+- [ISA](docs/isa.md)
 - [Microarquitetura](docs/microarch.md)
-- [Fases de desenvolvimento](docs/fases-desenvolvimento.md)
-- [Protocolo binário](docs/protocol.md)
+- [Memória](docs/memory.md)
+- [Plano de desenvolvimento](docs/development.md)

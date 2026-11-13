@@ -16,7 +16,8 @@ inline std::size_t loadBinaryImage(const std::string& path, Memory& memory) {
         throw std::runtime_error("não foi possível abrir o programa: " + path);
 
     const std::vector<unsigned char> bytes{
-        std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()
+        std::istreambuf_iterator<char>(file),
+        std::istreambuf_iterator<char>()
     };
 
     if (file.bad())

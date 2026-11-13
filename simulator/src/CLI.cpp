@@ -7,42 +7,44 @@
 #include <cstdint>
 #include <exception>
 #include <iostream>
+#include <optional>
 #include <string_view>
 
 namespace {
 
 struct Options {
     const char* program = nullptr;
-    std::uint64_t cycles = 1;
+    std::optional<std::uint64_t> cycles;
     bool trace = false;
 };
 
 bool parseOptions(int argc, char* argv[], Options& options) {
     if (argc < 2) {
-        std::cerr << "Uso: mic3_simulator programa.bin [--cycles N] [--trace]\n";
+        std::cerr << "Uso: mic3_simulator program.bin [--cycles N] [--trace]\n";
         return false;
     }
 
     options.program = argv[1];
-    bool cycles = false;
 
     for (int i = 2; i < argc; ++i) {
         const std::string_view option(argv[i]);
 
         if (option == "--trace" && !options.trace) {
             options.trace = true;
-        } else if (option == "--cycles" && !cycles && i + 1 < argc) {
+        } else if (option == "--cycles" && !options.cycles && i + 1 < argc) {
             const std::string_view number(argv[++i]);
-            const auto parsed = std::from_chars(number.data(), number.data() + number.size(), options.cycles);
+            std::uint64_t limit = 0;
+
+            const auto parsed = std::from_chars(number.data(), number.data() + number.size(), limit);
 
             if (parsed.ec != std::errc{} || parsed.ptr != number.data() + number.size()) {
                 std::cerr << "N deve ser um inteiro não negativo\n";
                 return false;
             }
 
-            cycles = true;
+            options.cycles = limit;
         } else {
-            std::cerr << "Uso: mic3_simulator programa.bin [--cycles N] [--trace]\n";
+            std::cerr << "Uso: mic3_simulator program.bin [--cycles N] [--trace]\n";
             return false;
         }
     }
@@ -108,17 +110,13 @@ int runCLI(int argc, char* argv[]) {
 
     try {
         RAM ram;
-
-        // Carrega o programa binário na memória principal.
-        const auto loadedWords = loadBinaryImage(options.program, ram);
+        const auto loadedWords = loadBinaryImage(options.program, ram); // Carrega o programa binário na memória principal.
 
         MicroMachine machine(ram);
-
         bool characterLineOpen = false;
 
-        for (std::uint64_t i = 0; i < options.cycles && !machine.halted(); ++i) {
+        while (!machine.halted() && (!options.cycles || machine.cycles() < *options.cycles)) {
             const auto event = machine.step();
-
             printOutput(event, characterLineOpen);
 
             if (options.trace)

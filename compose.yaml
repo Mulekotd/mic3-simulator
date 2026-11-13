@@ -11,58 +11,51 @@ services:
     network_mode: none
 
   simulator:
-    container_name: simulator
     image: mic3-sim
     build:
       context: ./simulator
       dockerfile: ../dockerfiles/Simulator
-    command: ["--serve-local", "/run/mic3/simulator.sock"]
+    command: ["/data/${SIMULATOR_PROGRAM:-sum.bin}"]
     depends_on:
       assembler:
         condition: service_completed_successfully
     volumes:
       - ./shared:/data:ro
-      - mic3-ipc:/run/mic3
     network_mode: none
 
   gui:
     profiles: [gui]
-    image: mic3-gui
+    image: mic3-sim
     build:
-      context: .
-      dockerfile: dockerfiles/GUI
+      context: ./simulator
+      dockerfile: ../dockerfiles/Simulator
     user: "${GUI_UID:-1000}:${GUI_GID:-1000}"
     environment:
       DISPLAY: "${DISPLAY:-:0}"
       XAUTHORITY: /tmp/.Xauthority
-    command: ["unix:///run/mic3/simulator.sock", "/data/${SIMULATOR_PROGRAM:-sum.bin}"]
+    command: ["--gui"]
     depends_on:
-      simulator:
-        condition: service_started
+      assembler:
+        condition: service_completed_successfully
     volumes:
       - ./shared:/data:ro
-      - mic3-ipc:/run/mic3
       - /tmp/.X11-unix:/tmp/.X11-unix:ro
       - ${GUI_XAUTHORITY:-/dev/null}:/tmp/.Xauthority:ro
     network_mode: none
 
   gui-windows:
     profiles: [gui-windows]
-    image: mic3-gui
+    image: mic3-sim
     build:
-      context: .
-      dockerfile: dockerfiles/GUI
+      context: ./simulator
+      dockerfile: ../dockerfiles/Simulator
     user: "1000:1000"
     environment:
       DISPLAY: host.docker.internal:0.0
       LIBGL_ALWAYS_SOFTWARE: "1"
-    command: ["unix:///run/mic3/simulator.sock", "/data/${SIMULATOR_PROGRAM:-sum.bin}"]
+    command: ["--gui"]
     depends_on:
-      simulator:
-        condition: service_started
+      assembler:
+        condition: service_completed_successfully
     volumes:
       - ./shared:/data:ro
-      - mic3-ipc:/run/mic3
-
-volumes:
-  mic3-ipc:

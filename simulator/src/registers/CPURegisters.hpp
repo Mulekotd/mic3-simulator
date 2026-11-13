@@ -20,10 +20,8 @@ struct CPURegisters {
 
     void reset() {
         bank.reset();
-
         a.reset();
         b.reset();
-
         mar.reset();
         mbr.reset();
         mir.reset();

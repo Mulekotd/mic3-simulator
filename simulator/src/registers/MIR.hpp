@@ -16,7 +16,8 @@ private:
 };
 
 inline void MIR::write(std::uint64_t value, bool enable) {
-    if (!enable) return;
+    if (!enable)
+        return;
 
     if (value > mask)
         throw std::out_of_range("valor excede 36 bits");

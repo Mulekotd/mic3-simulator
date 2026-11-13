@@ -35,7 +35,7 @@ Formato B (opcode 1111):          [31:28] = 1111 | [27:24] sub-opcode | [23:8] =
 | `1111`, sub `1100` | INSP      | `sp := sp + y` (0 a 255)             |
 | `1111`, sub `1110` | DESP      | `sp := sp - y` (0 a 255)             |
 
-**Sem HALT e sem E/S na ISA.** A ISA do PDF não tem instrução de parada nem de entrada/saída. Para "retornar a saída final do programa", o projeto usa **E/S mapeada em memória**, nos últimos endereços do espaço de 4096 palavras. Escritas nesses endereços **não passam pela D-cache** e são tratadas pelo simulador:
+**Sem HALT e sem E/S na ISA.** A ISA do PDF não tem instrução de parada nem de entrada/saída. Para "retornar a saída final do programa", o projeto usa **E/S mapeada em memória**, nos últimos endereços do espaço de 4096 palavras. Escritas nesses endereços são tratadas diretamente pelo simulador; a D-cache ainda não foi implementada:
 
 | Endereço | Efeito de `STOD` nele                                  |
 | -------- | ------------------------------------------------------ |
@@ -54,7 +54,7 @@ O montador oferece pseudo-instruções: `OUTI` = `STOD 0xFFF`, `OUTC` = `STOD 0x
 - A pilha começa em `sp = 0xFFC` e cresce para endereços menores. O primeiro `PUSH` ou `CALL` escreve em `0xFFB`. Os endereços `0xFFD` a `0xFFF` ficam reservados para E/S.
 - O arquivo `.bin` contém as palavras consecutivas em **little-endian**, sem cabeçalho, a partir do endereço 0. Instruções e dados compartilham a mesma RAM.
 
-## Dialeto assembly previsto
+## Dialeto assembly implementado
 
 O montador aceita um rótulo opcional (`nome:`), seguido de uma instrução ou diretiva. Um comentário começa em `;` e termina no fim da linha. Nomes de rótulos usam letras, dígitos e `_`, começando por letra ou `_`; mnemônicos não diferenciam maiúsculas de minúsculas. O operando pode ser um número decimal, `0x` hexadecimal ou um rótulo. Referências a rótulos adiante são permitidas; rótulos diferenciam maiúsculas de minúsculas.
 

@@ -44,11 +44,10 @@ MicroCycleEvent MicroMachine::step() {
     // A resposta da memória chega antes da ULA consumir os registradores.
     clock.tick([&] {
         justCompleted = false;
-
         advanceMemory(event);
 
         // Com latência 1, a repetição RD/WR ainda precisa concluir a
-        // microinstrução (e contar a macroinstrução HALT) nesta borda.
+        // microinstrução nesta borda.
         if (event.memoryStall || (haltedFlag && pending.repeatSeen))
             return;
 
@@ -56,7 +55,6 @@ MicroCycleEvent MicroMachine::step() {
     });
 
     event.halted = haltedFlag;
-
     return event;
 }
 
@@ -179,6 +177,8 @@ void MicroMachine::executeMicro(MicroCycleEvent& event) {
 
     cpuState.mir.write(word);
     cpuState.mpc = next;
+
+    // flags capturadas
     cpuState.n = result.n;
     cpuState.z = result.z;
 }
