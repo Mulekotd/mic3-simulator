@@ -81,6 +81,7 @@ Reproduzir o MIC-1 do PDF com palavra de 32 bits e 32 registradores, executando 
 - [X] Base da janela Raylib e conexão TX/RX local por pipes ou socket Unix compartilhado com o serviço persistente do Compose.
 - [X] **Thread de leitura** separada da janela, com fila de quadros, para a GUI não travar em `RUN`.
 - [X] Controles básicos de carga, passo por ciclo/instrução, retorno de instrução, execução, pausa, retomada e reset; visualização inicial de ciclo e saída.
+- [X] Inspeção da pilha na GUI a partir de `SP` e RAM, com atualizações durante `RUN` e restauração após `STEP_BACK`.
 - [ ] Acabamento visual e tratamento de erros de interface.
 - [ ] Painéis de pipeline, microinstrução (`.mlst`), registradores, caches, memória (`READ_MEM`) e assembly (`.lst`), com destaque das mudanças do ciclo.
 - [ ] Controles completos de breakpoints e memória, métricas e estados detalhados.

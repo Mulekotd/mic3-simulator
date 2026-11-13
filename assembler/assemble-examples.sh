@@ -6,6 +6,7 @@ if [ "$#" -gt 0 ]; then
 fi
 
 set -- /examples/*.asm
+
 if [ ! -f "$1" ]; then
     echo 'Nenhum arquivo .asm encontrado em /examples' >&2
     exit 1

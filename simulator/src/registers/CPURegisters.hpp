@@ -23,11 +23,10 @@ struct CPURegisters {
 
         a.reset();
         b.reset();
+
         mar.reset();
         mbr.reset();
-
         mir.reset();
-
         mpc = 0;
 
         n = false;

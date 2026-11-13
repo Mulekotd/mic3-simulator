@@ -205,6 +205,30 @@ struct Rewound {
     void encode(ByteWriter& w) const { w.u32(outputCount); }
 };
 
+struct StackState {
+    static constexpr MessageType kType = MessageType::StackState;
+    static constexpr std::size_t kBaseLen = 11;
+    static constexpr std::size_t kMaxWords = 32;
+
+    uint32_t cycle = 0;
+    uint32_t sp = 0;
+    uint16_t depth = 0;
+    std::vector<uint32_t> words;
+
+    void encode(ByteWriter& writer) const {
+        if (words.size() > kMaxWords || words.size() > depth)
+            throw std::invalid_argument("STACK_STATE com quantidade de palavras inválida");
+
+        writer.u32(cycle);
+        writer.u32(sp);
+        writer.u16(depth);
+        writer.u8(static_cast<uint8_t>(words.size()));
+
+        for (uint32_t word : words)
+            writer.u32(word);
+    }
+};
+
 // Monta um quadro completo: TYPE | LEN (u16 LE) | PAYLOAD.
 // Devolve vetor vazio se o payload exceder kMaxPayload.
 inline std::vector<uint8_t> makeFrame(uint8_t type, const std::vector<uint8_t>& payload) {

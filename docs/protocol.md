@@ -21,21 +21,23 @@ Todos os comandos conhecidos recebem um `ACK` (`status=0` para sucesso, valor n�
 | ------ | ------------ | ------------------------------------------------------------------------- | ---------------------------------------------------- |
 | `0x01` | `LOAD_BEGIN` | `start_word:u32`, `word_count:u32` (8 B)                                  | `ACK`                                                |
 | `0x02` | `LOAD_DATA`  | `offset_words:u32`, `words:u32[n]`, 1 ≤ n ≤ 64 (4+4n B)                   | `ACK`                                                |
-| `0x03` | `LOAD_END`   | vazio                                                                     | `ACK`                                                |
-| `0x10` | `STEP_CYCLE` | vazio                                                                     | `ACK`, `CYCLE_STATE`, talvez `HALTED`                |
-| `0x11` | `STEP_INSTR` | vazio                                                                     | `ACK`, `CYCLE_STATE`, `RUN_STOPPED`, talvez `HALTED` |
+| `0x03` | `LOAD_END`   | vazio                                                                     | `ACK`, `STACK_STATE`                                 |
+| `0x10` | `STEP_CYCLE` | vazio                                                                     | `ACK`, `CYCLE_STATE`, `STACK_STATE` se mudou, talvez `HALTED` |
+| `0x11` | `STEP_INSTR` | vazio                                                                     | `ACK`, `STACK_STATE` se mudou, `CYCLE_STATE`, `RUN_STOPPED`, talvez `HALTED` |
 | `0x12` | `RUN`        | `max_cycles:u32`, `report_mode:u8`, `report_every:u16` (7 B)              | `ACK`, eventos, `RUN_STOPPED`, `STATS`               |
 | `0x13` | `PAUSE`      | vazio                                                                     | `ACK`, depois `RUN_STOPPED` do `RUN` ativo           |
-| `0x14` | `RESET`      | vazio                                                                     | `ACK`                                                |
+| `0x14` | `RESET`      | vazio                                                                     | `ACK`, `STACK_STATE`                                 |
 | `0x15` | `SET_BP`     | `pc_word:u32` (4 B)                                                       | `ACK`                                                |
 | `0x16` | `CLR_BP`     | `pc_word:u32` (4 B)                                                       | `ACK`                                                |
-| `0x17` | `STEP_BACK`  | vazio                                                                     | `ACK`, `REWOUND`, `CYCLE_STATE`, `STATS`             |
+| `0x17` | `STEP_BACK`  | vazio                                                                     | `ACK`, `REWOUND`, `CYCLE_STATE`, `STACK_STATE`, `STATS` |
 | `0x20` | `READ_MEM`   | `start_word:u32`, `word_count:u16` (6 B)                                  | `ACK`, `MEM_DATA`                                    |
 | `0x21` | `CONFIG`     | `i_lines:u16`, `d_lines:u16`, `line_words:u8`, `memory_latency:u16` (7 B) | `ACK`                                                |
 
 `LOAD_BEGIN` exige `start_word=0` e `word_count≤4096`. O simulador cria uma imagem temporária; `LOAD_DATA` envia offsets **sequenciais**, começando por zero, sem lacunas nem sobreposição. `LOAD_END` só confirma quando recebeu exatamente `word_count` palavras: então substitui a RAM, zera o restante, reinicia CPU/contadores e invalida caches. Uma carga incompleta recebe `load_incomplete` e preserva a imagem anterior. Cada palavra enviada usa 4 bytes little-endian. O carregador de arquivo `.bin` da CLI permanece como entrada separada até esta interface existir.
 
 `RUN` exige `max_cycles≥1` e `report_every≥1`. `report_mode` vale `0` (completo: um `CYCLE_STATE` por ciclo), `1` (compacto: eventos de stall, miss, conclusão de macroinstrução e a cada `report_every` ciclos) ou `2` (só final: sem `CYCLE_STATE` durante `RUN`). `PROGRAM_OUT` e `HALTED` são enviados em todos os modos. Ao terminar por limite de ciclos, pausa, breakpoint ou parada do programa, `RUN` envia `RUN_STOPPED` e em seguida `STATS`. `PAUSE` é lido sem bloquear durante `RUN` e efetiva a pausa após o ciclo corrente. `STEP_CYCLE` executa um ciclo; `STEP_INSTR` executa até concluir uma macroinstrução e envia o estado final. Breakpoints são verificados **antes** da busca no PC indicado.
+
+`STACK_STATE` é enviado após `LOAD_END` e `RESET`, após `STEP_BACK` e sempre que a visão da pilha muda durante avanço por ciclo, instrução ou `RUN`. Ele é independente de `report_mode`: mesmo o modo compacto informa mudanças da pilha. A mensagem descreve a RAM **após** o microciclo indicado. Quando `SP` desce antes de a escrita pendente terminar, uma posição pode aparecer com o valor antigo e ser atualizada em outra mensagem quando a RAM receber a escrita.
 
 `RESET` restaura a imagem carregada e o estado inicial da CPU, zera contadores, invalida caches e remove breakpoints; preserva a configuração de cache/latência. `READ_MEM` aceita 1–64 palavras de RAM comum, desde que `start_word + word_count ≤ 0xFFD`; a região de E/S não é legível por esse comando. `CONFIG` aceita `i_lines` e `d_lines` como potências de dois entre 1 e 256, `line_words` em {1, 2, 4, 8} e `memory_latency` entre 1 e 65535 ciclos. Só é aceito com o simulador parado; invalida caches e zera os contadores de cache. [Memória e caches](memory.md) define os padrões e políticas.
 
@@ -53,9 +55,12 @@ Todos os comandos conhecidos recebem um `ACK` (`status=0` para sucesso, valor n�
 | `0x94` | `STATS`       | Treze contadores `u32`, layout abaixo                        | 52   |
 | `0x95` | `RUN_STOPPED` | `reason:u8`, `pc_word:u32`, `cycles:u32`, `instructions:u32` | 13   |
 | `0x96` | `REWOUND`     | `output_count:u32`                                           | 4    |
+| `0x97` | `STACK_STATE` | `cycle:u32`, `sp:u32`, `depth:u16`, `word_count:u8`, `words:u32[count]` | 11+4n |
 | `0x9F` | `ERROR`       | `status:u8`, `offending_type:u8`                             | 2    |
 
 `PROGRAM_OUT.kind=0` interpreta `value` como inteiro de 32 bits com sinal; `kind=1` usa apenas o byte baixo como caractere. Escrita em `0xFFF` gera o primeiro tipo, em `0xFFE` gera o segundo; escrita em `0xFFD` gera `HALTED`. `HALTED` significa parada pela pseudo-instrução `HALT`, não pausa ou limite de ciclos. `RUN_STOPPED.reason` vale 0 limite, 1 pausa, 2 breakpoint, 3 HALT ou 4 macroinstrução concluída (`STEP_INSTR`). `MEM_DATA` repete o endereço e a contagem solicitados e retorna as palavras na ordem crescente.
+
+`STACK_STATE.depth` é `0xFFC - SP` quando `SP ≤ 0xFFC`; acima disso, é zero e a GUI mostra `SP` fora da região. `words[0]` é a palavra no endereço `SP`, seguida de endereços crescentes, até 32 palavras do topo. `word_count` pode ser zero. A pilha não guarda cópia própria: a mensagem é uma inspeção da RAM e do registrador `SP`. O painel da GUI mostra o topo, permite rolar pelas 32 palavras recebidas e indica a profundidade total; valores mais profundos continuam acessíveis por `READ_MEM`.
 
 ### `CYCLE_STATE` (174 bytes)
 

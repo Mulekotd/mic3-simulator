@@ -66,6 +66,11 @@ def main():
 
         send(process.stdin, 0x03)
         ack(process.stdout, 0x03)
+        kind, payload = frame(process.stdout)
+
+        if kind != 0x97 or len(payload) != 11 or struct.unpack("<IIHB", payload) != (0, 0xFFC, 0, 0):
+            raise RuntimeError("estado inicial da pilha inesperado")
+
         send(process.stdin, 0x12, struct.pack("<IBH", args.max_cycles, 2, 1))
         ack(process.stdout, 0x12)
 

@@ -54,6 +54,22 @@ int main() {
 
         check(rejected, "MEM_DATA com 65 palavras aceito");
 
+        const auto stack = tx::toFrame(tx::StackState{7, 0xFFB, 1, {42}});
+        check(stack == std::vector<uint8_t>({0x97, 0x0F, 0x00,
+                                             7, 0, 0, 0,
+                                             0xFB, 0x0F, 0, 0,
+                                             1, 0, 1,
+                                             42, 0, 0, 0}),
+              "STACK_STATE com layout incorreto");
+
+        rejected = false;
+        try {
+            tx::toFrame(tx::StackState{0, 0, 33, std::vector<uint32_t>(33)});
+        } catch (const std::invalid_argument&) {
+            rejected = true;
+        }
+        check(rejected, "STACK_STATE com mais de 32 palavras aceito");
+
         std::cout << "Protocolo TX/RX passou\n";
 
         return 0;

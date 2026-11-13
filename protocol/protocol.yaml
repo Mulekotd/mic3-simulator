@@ -191,6 +191,15 @@ messages:
     length: 4
     fields:
       - {name: output_count, type: u32}
+  STACK_STATE:
+    id: 0x97
+    length: {base: 11, per_word: 4, min_words: 0, max_words: 32}
+    fields:
+      - {name: cycle, type: u32}
+      - {name: sp, type: u32}
+      - {name: depth, type: u16}
+      - {name: word_count, type: u8}
+      - {name: words, type: u32, count_field: word_count}
   ERROR:
     id: 0x9f
     length: 2

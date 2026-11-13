@@ -38,7 +38,7 @@ cmake --build gui/builds/local
 ./gui/builds/local/mic3_gui ./simulator/builds/local/mic3_simulator /tmp/sum.bin
 ```
 
-Na janela, `L` carrega o `.bin`, espaço executa um ciclo, `I` uma instrução, `R` executa, `P` pausa e `X` reinicia. A execução local usa pipes; no Compose, a GUI se conecta ao socket Unix do serviço persistente. A leitura dos quadros ocorre em thread separada. Esta é a estrutura inicial da GUI; os painéis completos pertencem à Fase 7.
+Na janela, `L` carrega o `.bin`, espaço executa um ciclo, `I` uma instrução, `R` executa, `P` pausa e `X` reinicia. O painel **Pilha de execução** mostra `SP`, profundidade e as 32 palavras mais próximas do topo, com rolagem e registro das últimas alterações durante a execução. A execução local usa pipes; no Compose, a GUI se conecta ao socket Unix do serviço persistente. A leitura dos quadros ocorre em thread separada.
 
 ## Microprograma
 

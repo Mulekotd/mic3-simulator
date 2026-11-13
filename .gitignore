@@ -1,12 +1,11 @@
 # builds
-**/builds/**
+builds/
 
 # vscode settings
-/.vscode/
+.vscode/
 
 # assembly programs
-shared/*
-!shared/.gitkeep
+shared/
 
 # cache files and directories
-**/__pycache__/**
+__pycache__/

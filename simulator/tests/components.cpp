@@ -6,6 +6,7 @@
 #include "io/BinaryImage.hpp"
 #include "RAM.hpp"
 #include "Shifter.hpp"
+#include "StackInspector.hpp"
 #include "registers/CPURegisters.hpp"
 
 #include <filesystem>
@@ -116,6 +117,29 @@ void testState() {
     check(ram.read(RAM::size - 1) == 0, "RAM: reset");
 }
 
+void testStackInspector() {
+    RAM ram;
+    auto snapshot = StackInspector::capture(ram, 0xFFC);
+    check(snapshot.depth == 0 && snapshot.words.empty(), "pilha: estado inicial vazio");
+
+    ram.write(0xFFB, 42);
+    ram.write(0xFFA, 17);
+    snapshot = StackInspector::capture(ram, 0xFFA);
+    check(snapshot.sp == 0xFFA && snapshot.depth == 2 &&
+          snapshot.words == std::vector<Word>({17, 42}), "pilha: topo e ordem das palavras");
+
+    snapshot = StackInspector::capture(ram, 0xFFB);
+    check(snapshot.depth == 1 && snapshot.words == std::vector<Word>({42}),
+          "pilha: palavra removida não aparece");
+
+    snapshot = StackInspector::capture(ram, 0);
+    check(snapshot.depth == 0xFFC && snapshot.words.size() == StackInspector::maxVisibleWords,
+          "pilha: profundidade total e janela limitada");
+
+    snapshot = StackInspector::capture(ram, 0xFFD);
+    check(snapshot.depth == 0 && snapshot.words.empty(), "pilha: SP fora da região");
+}
+
 void writeBytes(const std::filesystem::path& path, const std::vector<unsigned char>& bytes) {
     std::ofstream file(path, std::ios::binary);
 
@@ -161,6 +185,7 @@ int main(int argc, char* argv[]) {
 
         testDatapath();
         testState();
+        testStackInspector();
         testLoader(argv[1]);
 
         std::cout << "Todos os testes de componentes passaram\n";

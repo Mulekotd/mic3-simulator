@@ -126,8 +126,10 @@ void MicroMachine::executeMicro(MicroCycleEvent& event) {
     const std::uint64_t word = event.word;
     const std::uint8_t mpc = event.mpc;
     const MicroFields fields(word);
+
     const Word a = cpuState.bank.read(fields.a);
     const Word b = cpuState.bank.read(fields.b);
+
     const Word aluInput = AMUX::select(a, cpuState.mbr.read(), fields.useMbr);
     const auto result = ALU::execute(aluInput, b, fields.alu);
     const Word shifted = Shifter::execute(result.value, fields.shift);

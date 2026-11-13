@@ -85,6 +85,7 @@ enum class MessageType : uint8_t {
     Stats = 0x94,
     RunStopped = 0x95,
     Rewound = 0x96,
+    StackState = 0x97,
     Error = 0x9F,
 };
 

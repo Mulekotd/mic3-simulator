@@ -2,6 +2,7 @@
 #include "ProtocolSession.hpp"
 #include "../MicroMachine.hpp"
 #include "../RAM.hpp"
+#include "../StackInspector.hpp"
 
 #include <cerrno>
 #include <cstdio>
@@ -75,6 +76,9 @@ private:
 
     void rememberInstruction() {
         if (machine->cpu().mpc != 0)
+            return;
+
+        if (!history.empty() && history.back().machine.instructions() == machine->instructions())
             return;
 
         if (history.size() == 1024)
@@ -207,6 +211,28 @@ private:
         return s;
     }
 
+    void sendStackState(bool force = false) {
+        if (!machine)
+            return;
+
+        StackSnapshot snapshot = StackInspector::capture(
+            ram, machine->cpu().bank.read(RegisterBank::SP));
+
+        if (!force && stackKnown && snapshot.sp == lastStack.sp &&
+            snapshot.depth == lastStack.depth && snapshot.words == lastStack.words)
+            return;
+
+        tx::StackState message;
+        message.cycle = static_cast<uint32_t>(machine->cycles());
+        message.sp = snapshot.sp;
+        message.depth = snapshot.depth;
+        message.words = snapshot.words;
+        send(message);
+
+        lastStack = std::move(snapshot);
+        stackKnown = true;
+    }
+
     void step(bool report) {
         rememberInstruction();
 
@@ -219,6 +245,8 @@ private:
 
         if (report)
             send(state(event));
+
+        sendStackState();
 
         emitOutput(event);
 
@@ -261,6 +289,8 @@ private:
     
         if (complete || compact)
             send(state(event));
+
+        sendStackState();
     
         emitOutput(event);
     
@@ -289,6 +319,7 @@ private:
 
         lastEvent = {};
         history.clear();
+        stackKnown = false;
     }
 
     void handle(const tx::Frame& frame) {
@@ -358,6 +389,7 @@ private:
                     breakpoints.clear();
 
                     ack(frame.type);
+                    sendStackState(true);
                 }
                 break;
             case tx::CommandType::StepCycle:
@@ -396,6 +428,19 @@ private:
             }
             case tx::CommandType::StepBack: {
                 if (!machine || history.empty()) { ack(frame.type, tx::Status::BadState); break; }
+
+                std::uint64_t targetInstruction = machine->instructions();
+                if (machine->cpu().mpc == 0 && targetInstruction > 0)
+                    --targetInstruction;
+
+                while (!history.empty() && history.back().machine.instructions() > targetInstruction)
+                    history.pop_back();
+
+                if (history.empty() || history.back().machine.instructions() != targetInstruction) {
+                    ack(frame.type, tx::Status::BadState);
+                    break;
+                }
+
                 auto checkpoint = std::move(history.back());
                 history.pop_back();
                 ram = std::move(checkpoint.ram);
@@ -406,6 +451,7 @@ private:
                 ack(frame.type);
                 send(tx::Rewound{outputCount});
                 send(state(lastEvent));
+                sendStackState(true);
                 send(stats());
                 break;
             }
@@ -428,6 +474,7 @@ private:
                     breakpoints.clear();
                     loading = false;
                     ack(frame.type);
+                    sendStackState(true);
                 }
                 break;
             case tx::CommandType::SetBp:
@@ -488,6 +535,8 @@ private:
     MicroCycleEvent lastEvent;
     std::deque<Checkpoint> history;
     uint32_t outputCount = 0;
+    StackSnapshot lastStack;
+    bool stackKnown = false;
 };
 
 }  // namespace

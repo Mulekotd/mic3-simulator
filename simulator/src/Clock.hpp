@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <utility>
 
-
 class Clock {
 public:
     template <typename OnRisingEdge>

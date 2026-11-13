@@ -1,5 +1,6 @@
 #include "GuiApp.hpp"
 #include "SimulatorClient.hpp"
+#include "StackPanel.hpp"
 
 #include <raylib.h>
 
@@ -58,7 +59,7 @@ class GuiApp {
 public:
     GuiApp(const std::string& simulator, std::string program)
         : client(simulator), program(std::move(program)) {
-        InitWindow(900, 620, "MIC-3 | GUI");
+        InitWindow(1240, 760, "MIC-3 | GUI");
 
         std::vector<int> glyphs;
 
@@ -125,6 +126,7 @@ private:
                         outputEvents.clear();
                         cycle = 0;
                         halted = false;
+                        stackPanel.reset();
                     }
 
                     break;
@@ -158,8 +160,12 @@ private:
 
                     halted = false;
                     status = "Voltou uma instrução";
+                    stackPanel.markRewind();
                     break;
                 }
+                case tx::MessageType::StackState:
+                    stackPanel.update(frame);
+                    break;
                 case tx::MessageType::Halted:
                     halted = true;
                     status = "Programa encerrado (HALTED)";
@@ -225,10 +231,11 @@ private:
         drawText(state.c_str(), 24, 260, 22, RAYWHITE);
         drawText("Saída do programa", 24, 315, 22, SKYBLUE);
 
-        DrawRectangle(24, 348, 824, 240, Color{11, 16, 25, 255});
+        DrawRectangle(24, 348, 824, 375, Color{11, 16, 25, 255});
 
         const std::size_t start = output.size() > 1200 ? output.size() - 1200 : 0;
         drawText(output.substr(start).c_str(), 36, 360, 20, RAYWHITE);
+        stackPanel.draw(font);
 
         EndDrawing();
     }
@@ -242,6 +249,7 @@ private:
     std::string status = "Conectado. Pressione L para carregar o programa.";
     std::string output;
     std::vector<std::string> outputEvents;
+    StackPanel stackPanel;
     std::uint32_t cycle = 0;
     std::uint16_t mpc = 0;
 

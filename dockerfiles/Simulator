@@ -7,8 +7,9 @@ RUN apt-get update \
 WORKDIR /src
 COPY CMakeLists.txt ./
 COPY src/ ./src/
+COPY tests/ ./tests/
 
-RUN cmake -S . -B /build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF \
+RUN cmake -S . -B /build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON \
     && cmake --build /build --parallel
 
 FROM debian:bookworm-slim
@@ -18,6 +19,8 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /build/mic3_simulator /usr/local/bin/mic3_simulator
+COPY --from=build /build/mic3_tests /usr/local/bin/mic3_tests
+COPY --from=build /build/mic3_protocol_tests /usr/local/bin/mic3_protocol_tests
 WORKDIR /data
 RUN mkdir -p /run/mic3 && chmod 1777 /run/mic3
 USER 10001:10001
