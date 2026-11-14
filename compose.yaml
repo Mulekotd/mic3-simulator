@@ -15,25 +15,11 @@ services:
     build:
       context: ./simulator
       dockerfile: ../dockerfiles/Simulator
-    command: ["/data/${SIMULATOR_PROGRAM:-sum.bin}"]
-    depends_on:
-      assembler:
-        condition: service_completed_successfully
-    volumes:
-      - ./shared:/data:ro
-    network_mode: none
-
-  gui:
-    profiles: [gui]
-    image: mic1-simulator
-    build:
-      context: ./simulator
-      dockerfile: ../dockerfiles/Simulator
     user: "${GUI_UID:-1000}:${GUI_GID:-1000}"
     environment:
       DISPLAY: "${DISPLAY:-:0}"
       XAUTHORITY: /tmp/.Xauthority
-    command: ["--gui"]
+    command: ["--gui", "/data/${SIMULATOR_PROGRAM:-sum.bin}"]
     depends_on:
       assembler:
         condition: service_completed_successfully
@@ -53,7 +39,7 @@ services:
     environment:
       DISPLAY: host.docker.internal:0.0
       LIBGL_ALWAYS_SOFTWARE: "1"
-    command: ["--gui"]
+    command: ["--gui", "/data/${SIMULATOR_PROGRAM:-sum.bin}"]
     depends_on:
       assembler:
         condition: service_completed_successfully

@@ -32,6 +32,20 @@ MicroMachine::MicroMachine(Memory& memory) : memory(memory) {
         control.write(static_cast<std::uint8_t>(i), mic1Rom[i]);
 }
 
+MicroMachine::Snapshot MicroMachine::snapshot() const {
+    return {cpuState, clock, pending, instructionCount, haltedFlag, memoryLatency, justCompleted};
+}
+
+void MicroMachine::restore(const Snapshot& state) {
+    cpuState = state.cpu;
+    clock = state.clock;
+    pending = state.pending;
+    instructionCount = state.instructions;
+    haltedFlag = state.halted;
+    memoryLatency = state.memoryLatency;
+    justCompleted = state.justCompleted;
+}
+
 MicroCycleEvent MicroMachine::step() {
     if (haltedFlag)
         throw std::logic_error("simulação já encerrada");

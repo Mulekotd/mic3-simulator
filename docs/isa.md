@@ -47,6 +47,8 @@ O montador oferece pseudo-instruções: `OUTI` = `STOD 0xFFF`, `OUTC` = `STOD 0x
 
 ## Endereçamento e representação
 
+Os modos de endereçamento e a formação do endereço na MIC-1 estão detalhados em [Modos de endereçamento](addressing.md).
+
 - `pc`, `sp` e `x` contêm **endereços de palavras**, não de bytes. Uma palavra tem 32 bits; a RAM tem endereços `0x000` a `0xFFF`.
 - As operações aritméticas usam complemento de dois de 32 bits, com descarte do carry além do bit 31. `JPOS` e `JNEG` interpretam o sinal do valor de `ac`; `JZER` e `JNZE` testam zero.
 - `x` e `y` são inteiros **sem sinal**. `LOCO x` não codifica constante negativa. Um acesso `sp + x` fora de `0x000` a `0xFFF` é inválido; não há retorno circular do endereço.

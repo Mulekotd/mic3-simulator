@@ -19,16 +19,6 @@ struct MicroCycleEvent {
 };
 
 class MicroMachine {
-public:
-    explicit MicroMachine(Memory& memory);
-
-    MicroCycleEvent step();
-    const CPURegisters& cpu() const { return cpuState; }
-    std::uint64_t cycles() const { return clock.cycles(); }
-    std::uint64_t instructions() const { return instructionCount; }
-    bool halted() const { return haltedFlag; }
-    void setMemoryLatency(unsigned cycles) { memoryLatency = cycles; }
-
 private:
     // Transação pendente da RAM; a latência padrão é de dois ciclos.
     struct Pending {
@@ -39,6 +29,30 @@ private:
         unsigned remaining = 0;
         bool repeatSeen = false;
     };
+
+public:
+    struct Snapshot {
+        CPURegisters cpu;
+        Clock clock;
+        Pending pending;
+        std::uint64_t instructions;
+        bool halted;
+        unsigned memoryLatency;
+        bool justCompleted;
+    };
+
+    explicit MicroMachine(Memory& memory);
+
+    MicroCycleEvent step();
+    Snapshot snapshot() const;
+    void restore(const Snapshot& state);
+    const CPURegisters& cpu() const { return cpuState; }
+    std::uint64_t cycles() const { return clock.cycles(); }
+    std::uint64_t instructions() const { return instructionCount; }
+    bool halted() const { return haltedFlag; }
+    void setMemoryLatency(unsigned cycles) { memoryLatency = cycles; }
+
+private:
 
     Memory& memory;
     CPURegisters cpuState;
