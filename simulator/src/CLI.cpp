@@ -20,7 +20,7 @@ struct Options {
 
 bool parseOptions(int argc, char* argv[], Options& options) {
     if (argc < 2) {
-        std::cerr << "Uso: mic3_simulator program.bin [--cycles N] [--trace]\n";
+        std::cerr << "Uso: mic1-simulator program.bin [--cycles N] [--trace]\n";
         return false;
     }
 
@@ -44,7 +44,7 @@ bool parseOptions(int argc, char* argv[], Options& options) {
 
             options.cycles = limit;
         } else {
-            std::cerr << "Uso: mic3_simulator program.bin [--cycles N] [--trace]\n";
+            std::cerr << "Uso: mic1-simulator program.bin [--cycles N] [--trace]\n";
             return false;
         }
     }

@@ -1,14 +1,14 @@
-# Simulador MIC-3
+# Simulador MIC-1 com cache
 
-Simulador de microarquitetura em C++17 com montador de assembly e microasm em Python. Executa as 23 instruções da [ISA](docs/isa.md) em uma MIC-1 de 32 bits, sem pipeline ou cache nesta etapa.
+Simulador de uma MIC-1 de 32 bits em C++17, com montador de assembly e microasm em Python. Executa as 23 instruções da [ISA](docs/isa.md). A implementação de caches de instruções e dados faz parte do projeto, mas ainda não está pronta.
 
 ## Arquitetura atual
 
-O código da interface e do núcleo está em `simulator/src/`: `MicroMachine` executa os microciclos, `CLI.cpp` carrega e executa programas, e `GUI.hpp` abre a janela Raylib. Tudo pertence ao executável `mic3_simulator`; não há processo de GUI separado nem canal TX/RX. A GUI atual mostra apenas uma janela preta. Carga, controles e visualização do estado ainda serão integrados à janela.
+O código da interface e do núcleo está em `simulator/src/`: `MicroMachine` executa os microciclos, `CLI.cpp` carrega e executa programas, e `GUI.hpp` abre a janela Raylib. Tudo pertence ao executável `mic1-simulator`; não há processo de GUI separado nem canal TX/RX. A GUI atual mostra apenas uma janela preta. Carga, controles e visualização do estado ainda serão integrados à janela.
 
 ## Uso local
 
-Requisitos: CMake 3.12+, compilador C++17 e Python 3. Para compilar a janela, são necessárias as dependências de desenvolvimento do Raylib. O CMake procura Raylib instalado e, se não o encontrar, baixa a versão 6.2 durante a configuração. Em um ambiente sem dependências gráficas ou acesso à rede, configure o simulador com `-DMIC3_ENABLE_GUI=OFF` para compilar somente a CLI; nesse build, `--gui` informa que a interface está indisponível.
+Requisitos: CMake 3.12+, compilador C++17 e Python 3. Para compilar a janela, são necessárias as dependências de desenvolvimento do Raylib. O CMake procura Raylib instalado e, se não o encontrar, baixa a versão 6.2 durante a configuração. Em um ambiente sem dependências gráficas ou acesso à rede, configure o simulador com `-DMIC1_ENABLE_GUI=OFF` para compilar somente a CLI; nesse build, `--gui` informa que a interface está indisponível.
 
 ```sh
 cmake -S assembler -B assembler/builds/local
@@ -18,11 +18,11 @@ cmake -S simulator -B simulator/builds/local
 cmake --build simulator/builds/local
 
 ./assembler/builds/local/assembler examples/sum.asm -o /tmp/sum.bin -l /tmp/sum.lst
-./simulator/builds/local/mic3_simulator /tmp/sum.bin
-./simulator/builds/local/mic3_simulator --gui
+./simulator/builds/local/mic1-simulator /tmp/sum.bin
+./simulator/builds/local/mic1-simulator --gui
 ```
 
-O exemplo imprime `PROGRAM_OUT=16` e `HALTED`. A CLI aceita `mic3_simulator programa.bin [--cycles N] [--trace]`: `--trace` envia os ciclos ao `stderr`, e `--cycles N` limita a execução a N ciclos. Sem limite, executa até `HALT`. O arquivo `.bin` contém até 4096 palavras de 32 bits em little endian, sem cabeçalho. A janela `--gui` ainda não abre o programa `.bin`.
+O exemplo imprime `PROGRAM_OUT=16` e `HALTED`. A CLI aceita `mic1-simulator programa.bin [--cycles N] [--trace]`: `--trace` envia os ciclos ao `stderr`, e `--cycles N` limita a execução a N ciclos. Sem limite, executa até `HALT`. O arquivo `.bin` contém até 4096 palavras de 32 bits em little endian, sem cabeçalho. A janela `--gui` ainda não abre o programa `.bin`.
 
 ## Microprograma
 
@@ -69,7 +69,7 @@ O Compose encaminha `DISPLAY` e o socket X11. No WSLg, o mesmo comando pode ser 
 Testes permanecem disponíveis para verificar implementações quando necessário, mas não são uma etapa obrigatória do build:
 
 ```sh
-cmake -S simulator -B simulator/builds/tests -DMIC3_ENABLE_GUI=OFF -DBUILD_TESTING=ON
+cmake -S simulator -B simulator/builds/tests -DMIC1_ENABLE_GUI=OFF -DBUILD_TESTING=ON
 cmake --build simulator/builds/tests
 ctest --test-dir simulator/builds/tests --output-on-failure
 ```

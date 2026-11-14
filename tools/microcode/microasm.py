@@ -9,7 +9,7 @@ from pathlib import Path
 REGISTERS = {
     'zero': 0, 'pc': 1, 'ac': 2, 'sp': 3, 'ir': 4, 'tir': 5,
     'one': 6, 'mone': 7, 'amask': 8, 'smask': 9,
-    **{chr(ord('a') + index): 10 + index for index in range(6)},
+    **{chr(ord('a') + index): 10 + index for index in range(6)}
 }
 
 PHASES = {'busca': 'Busca', 'identifica': 'Identifica', 'executa': 'Executa'}
@@ -43,8 +43,8 @@ def parse_expression(source, mar_source, line):
     """Resolve a expressão da ULA e a seleção comum do barramento B/MAR."""
 
     source = re.sub(r'\s+', '', source.lower())
-
     shift = 0
+
     for function, code in (('lshift', 2), ('rshift', 1)):
         prefix = function + '('
 
@@ -73,7 +73,6 @@ def parse_expression(source, mar_source, line):
 
     if mar_source is not None:
         register(mar_source, line)
-
         b = mar_source
 
         if len(operands) == 2 and b not in operands:

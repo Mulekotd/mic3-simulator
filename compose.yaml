@@ -1,6 +1,6 @@
 services:
   assembler:
-    image: mic3-assembler
+    image: mic1-assembler
     build:
       context: ./assembler
       dockerfile: ../dockerfiles/Assembler
@@ -11,7 +11,7 @@ services:
     network_mode: none
 
   simulator:
-    image: mic3-sim
+    image: mic1-simulator
     build:
       context: ./simulator
       dockerfile: ../dockerfiles/Simulator
@@ -25,7 +25,7 @@ services:
 
   gui:
     profiles: [gui]
-    image: mic3-sim
+    image: mic1-simulator
     build:
       context: ./simulator
       dockerfile: ../dockerfiles/Simulator
@@ -45,7 +45,7 @@ services:
 
   gui-windows:
     profiles: [gui-windows]
-    image: mic3-sim
+    image: mic1-simulator
     build:
       context: ./simulator
       dockerfile: ../dockerfiles/Simulator

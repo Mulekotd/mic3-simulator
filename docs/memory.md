@@ -1,15 +1,15 @@
 # Memória e E/S
 
-O simulador atual usa uma RAM de 4096 palavras de 32 bits, com endereços expressos em **índices de palavras**. A CLI carrega uma imagem `.bin` a partir do endereço zero. Pipeline, caches e árbitro de memória ainda não estão implementados.
+O projeto é uma MIC-1 de 32 bits com caches de instruções e dados planejadas. O simulador atual usa uma RAM de 4096 palavras, com endereços expressos em **índices de palavras**. A CLI carrega uma imagem `.bin` a partir do endereço zero. As caches e o árbitro de memória ainda não foram implementados.
 
 ## Mapa atual
 
-| Endereço | Uso |
-| --- | --- |
-| `0x000`–`0xFFC` | RAM para código, dados e pilha |
-| `0xFFD` | Escrita encerra a execução (`HALTED`) |
-| `0xFFE` | Escrita emite o byte baixo como caractere |
-| `0xFFF` | Escrita emite um inteiro com sinal (`PROGRAM_OUT`) |
+| Endereço        | Uso                                                |
+| --------------- | -------------------------------------------------- |
+| `0x000`–`0xFFC` | RAM para código, dados e pilha                     |
+| `0xFFD`         | Escrita encerra a execução (`HALTED`)              |
+| `0xFFE`         | Escrita emite o byte baixo como caractere          |
+| `0xFFF`         | Escrita emite um inteiro com sinal (`PROGRAM_OUT`) |
 
 `SP` começa em `0xFFC`; o primeiro `PUSH` ou `CALL` escreve em `0xFFB`. Os três endereços de E/S não armazenam dados. Leituras desses endereços e acessos além da RAM são rejeitados. O carregador rejeita imagens maiores que 4096 palavras ou cujo tamanho não seja múltiplo de quatro bytes.
 

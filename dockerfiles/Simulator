@@ -21,7 +21,7 @@ RUN apt-get update \
        libxcursor1 libxinerama1 \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=build /build/mic3_simulator /usr/local/bin/mic3_simulator
+COPY --from=build /build/mic1-simulator /usr/local/bin/mic1-simulator
 WORKDIR /data
 USER 10001:10001
-ENTRYPOINT ["/usr/local/bin/mic3_simulator"]
+ENTRYPOINT ["/usr/local/bin/mic1-simulator"]

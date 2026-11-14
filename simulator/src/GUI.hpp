@@ -3,7 +3,7 @@
 #include <raylib.h>
 
 inline int runGUI() {
-    InitWindow(960, 600, "MIC-3 Simulator");
+    InitWindow(960, 600, "MIC-1 Simulator");
     SetTargetFPS(60);
 
     while (!WindowShouldClose()) {

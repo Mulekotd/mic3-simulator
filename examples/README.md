@@ -10,4 +10,4 @@
 | `procedure_call.asm`   | Usa `CALL`/`RETN` e imprime 14       |
 | `all_instructions.asm` | Executa as 23 instruções e imprime 3 |
 
-`docker compose up -d --build` monta todos os exemplos em `shared/`, com os nomes `nome.bin` e `nome.lst` correspondentes a cada `nome.asm`. Veja o [passo a passo no README](../README.md#executar-com-docker-compose) para escolher um binário no simulador. Os binários seguem a [ISA](../docs/isa.md). O simulador executa o [microprograma transcrito](../tools/microcode/mic1.masm), sem pipeline nem cache.
+`docker compose up --build` monta todos os exemplos em `shared/`, com os nomes `nome.bin` e `nome.lst` correspondentes a cada `nome.asm`. Veja o [passo a passo no README](../README.md#docker-compose) para escolher um binário no simulador. Os binários seguem a [ISA](../docs/isa.md). O simulador executa o [microprograma da MIC-1](../tools/microcode/mic1.masm); as caches ainda serão implementadas.

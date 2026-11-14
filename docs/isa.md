@@ -1,6 +1,6 @@
 # ISA (macroinstruções)
 
-Sobre a ISA: **máquina de acumulador com pilha** (registradores visíveis: `ac`, `pc`, `sp`), **23 instruções**.
+A MIC-1 deste projeto usa uma ISA de **máquina de acumulador com pilha** (registradores visíveis: `ac`, `pc`, `sp`), com **23 instruções**. As caches planejadas não alteram o formato nem o comportamento das instruções.
 
 **Codificação em 32 bits.** Para o microprograma fornecido continuar valendo sem mudanças, o opcode fica nos **4 bits mais altos** da palavra (o microprograma identifica a instrução deslocando `ir` e testando o sinal `N`). O campo `x` tem 12 bits e representa endereço, constante ou deslocamento relativo a `sp`, conforme a instrução; `y` é um campo separado de 8 bits para `INSP`/`DESP`:
 
